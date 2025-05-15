@@ -3,9 +3,9 @@ import { Navigate, Outlet } from "react-router-dom";
 
 const RequireAuth = () => {
   const isAuthenticated = useIsAuthenticated();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+//   if (!isAuthenticated) {
+//     return <Navigate to="/login" replace />;
+//   }
   return <Outlet />;
 };
 
