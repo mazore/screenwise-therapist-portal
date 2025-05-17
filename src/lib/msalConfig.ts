@@ -11,35 +11,38 @@ import { LogLevel, Configuration } from "@azure/msal-browser";
 export const msalConfig: Configuration = {
   auth: {
     clientId: "f2a126c8-6201-45a3-a015-0179166e72ab", // e.g. 12345678-aaaa-bbbb-cccc-1234567890ab
-    authority: "https://login.screenwiseeating.com/screenwiseeating.onmicrosoft.com/B2C_1_screenwise-sign-up-sign-in",
+    authority: "https://login.screenwiseeating.com/screenwiseeating.onmicrosoft.com/B2C_1_screenwise-therapist-sign-up-sign-in",
     knownAuthorities: ["login.screenwiseeating.com"],
-    redirectUri: "/",
-    postLogoutRedirectUri: "/login"
+    redirectUri: "http://localhost:8080/",
+    navigateToLoginRequestUrl: false
   },
   cache: {
-    cacheLocation: "localStorage",
+    cacheLocation: "sessionStorage",
     storeAuthStateInCookie: false,
   },
   system: {
     loggerOptions: {
-      loggerCallback: (level, message, containsPii) => {
-        if (containsPii) return;
-        switch (level) {
+        loggerCallback: (level, message, containsPii) => {
+          if (containsPii) {
+            return;
+          }
+          switch (level) {
           case LogLevel.Error:
             console.error(message);
-            break;
+            return;
           case LogLevel.Info:
             console.info(message);
-            break;
+            return;
           case LogLevel.Verbose:
             console.debug(message);
-            break;
+            return;
           case LogLevel.Warning:
             console.warn(message);
-            break;
+            return;
+          default:
+              return;
         }
-      },
-      logLevel: LogLevel.Info,
-    },
-  },
+      }
+    }
+  }
 };

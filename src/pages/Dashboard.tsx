@@ -70,10 +70,10 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold tracking-tight">Welcome back, Canaan</h1>
           <p className="text-muted-foreground">Here's an overview of all your client activity.</p>
         </div>
-        
+
         <DashboardStats totalClients={4} inactiveClients={1} />
         <ClientOverview clients={mockClients} />
-        
+
         <div className="w-full">
           <SessionTable />
         </div>

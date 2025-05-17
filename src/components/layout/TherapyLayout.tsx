@@ -10,12 +10,26 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useMsal } from "@azure/msal-react";
+import { useNavigate } from "react-router-dom";
+
 interface TherapyLayoutProps {
   children: React.ReactNode;
 }
 export const TherapyLayout = ({
   children
 }: TherapyLayoutProps) => {
+  // Backend connection stuff
+  const { instance } = useMsal();
+  const navigate = useNavigate();
+
+  // const [loading, setLoading] = useState(true);
+  // useEffect(() => {
+  //   instance.
+  // }, []); // Runs on refresh
+
+
+
   const [collapsed, setCollapsed] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(() => {
     return localStorage.getItem('selectedClient');
@@ -113,7 +127,7 @@ export const TherapyLayout = ({
             <Menu className="h-5 w-5" />
           </Button>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto py-4">
           <div className="space-y-4">
             <div className="px-3">
@@ -124,7 +138,7 @@ export const TherapyLayout = ({
                 </Button>
               </Link>
             </div>
-            
+
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">Client Tools</h3>}
               <nav className="space-y-1">
@@ -143,9 +157,9 @@ export const TherapyLayout = ({
                   </TooltipProvider>)}
               </nav>
             </div>
-            
+
             <Separator className="my-2" />
-            
+
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">General Settings</h3>}
               <nav className="space-y-1">
@@ -166,14 +180,14 @@ export const TherapyLayout = ({
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="w-full flex justify-center">
             {collapsed ? <MenuRight className="h-5 w-5" /> : <MenuLeft className="h-5 w-5" />}
           </Button>
         </div>
       </div>
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b bg-white p-4">
           <div className="flex items-center justify-between">
@@ -193,16 +207,24 @@ export const TherapyLayout = ({
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className="relative">
-                
-                
+
               </div>
-              
+
               <div className="text-xs text-muted-foreground hidden md:block">
                 Last synced: {lastSynced}
               </div>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  instance.logoutRedirect();
+                  navigate("/login");
+                }}
+              >
+                Logout
+              </Button>
             </div>
           </div>
         </header>

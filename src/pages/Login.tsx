@@ -5,7 +5,13 @@ const Login = () => {
   const { instance } = useMsal();
 
   const handleLogin = () => {
-    instance.loginRedirect();
+    instance.loginRedirect({
+      scopes: ["openid", "profile"],
+      // Ensure we return to the page we were on
+      redirectStartPage: window.location.href
+    }).catch(e => {
+      console.error("Login failed:", e);
+    });
   };
 
   return (
@@ -16,7 +22,7 @@ const Login = () => {
           className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           onClick={handleLogin}
         >
-          Sign in with Azure AD B2C
+          Sign In
         </button>
       </div>
     </div>
