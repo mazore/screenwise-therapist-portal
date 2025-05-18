@@ -5,6 +5,7 @@ StickyNote // Add this import
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useClientData } from "@/hooks/useClientData";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,6 +13,9 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
+import { formatDistanceToNow } from 'date-fns';
+
+const API_URL = 'https://screenwise-backend.azurewebsites.net/';
 
 interface TherapyLayoutProps {
   children: React.ReactNode;
@@ -20,49 +24,73 @@ export const TherapyLayout = ({
   children
 }: TherapyLayoutProps) => {
   // Backend connection stuff
-  const { instance } = useMsal();
+  const { accounts, instance } = useMsal();
   const navigate = useNavigate();
+  const { clientData, setClientData } = useClientData();
+  const [therapistData, setTherapistData] = useState(null);
 
-  // const [loading, setLoading] = useState(true);
-  // useEffect(() => {
-  //   instance.
-  // }, []); // Runs on refresh
-
-
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const loadTherapistData = () => {
+      instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
+        .then((tokenResponse) => {
+          return fetch(API_URL + 'get_therapist_data', {
+            method: 'POST',
+            headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
+          })
+        })
+        .then((apiResponse) => apiResponse.json())
+        .then((data) => {
+          // console.log("Got therapist data", data);
+          setTherapistData(data.therapistData);
+          setLoading(false);
+        })
+        .catch((error) => {
+          instance.acquireTokenRedirect({scopes: ['openid', 'profile']});
+          console.error('There was a problem with the fetch operation:', error);
+        });
+    };
+    loadTherapistData();
+  }, [accounts, instance]); // Runs on refresh
 
   const [collapsed, setCollapsed] = useState(false);
   const [selectedClient, setSelectedClient] = useState<string | null>(() => {
     return localStorage.getItem('selectedClient');
   });
-  const [lastSynced, setLastSynced] = useState("2 minutes ago");
-  const clients = [{
-    id: "client-1",
-    name: "Client #1"
-  }, {
-    id: "client-3",
-    name: "Client #3"
-  }, {
-    id: "client-8",
-    name: "Client #8"
-  }, {
-    id: "client-12",
-    name: "Client #12"
-  }];
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   useEffect(() => {
-    if (selectedClient) {
+    if (selectedClient && therapistData) {
       localStorage.setItem('selectedClient', selectedClient);
+      fetch(API_URL + 'get_therapist_client', {
+        method: 'POST',
+        headers: {'Authorization': 'Bearer ' + accounts[0].idToken},
+        body: JSON.stringify({
+          clientProfile: selectedClient,
+          clientUserId: therapistData.clients[selectedClient].userId
+        })
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // console.log("Got client data", data);
+          setClientData(data);
+          setLastSyncedAt(Date.now());
+        })
+        .catch((error) => {
+          console.error('There was a problem with the fetch operation:', error);
+        });
     } else {
       localStorage.removeItem('selectedClient');
+      setClientData(null);
     }
-  }, [selectedClient]);
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      return React.cloneElement(child, {
-        selectedClient
-      } as Partial<unknown>);
-    }
-    return child;
-  });
+  }, [selectedClient, accounts, setClientData, therapistData]); // Runs on changing selectedClient
+  // const childrenWithProps = React.Children.map(children, child => {
+  //   if (React.isValidElement(child)) {
+  //     return React.cloneElement(child, {
+  //       selectedClient
+  //     } as Partial<unknown>);
+  //   }
+  //   return child;
+  // });
   const clientTools = [{
     title: "Logs Activity",
     icon: Home,
@@ -116,6 +144,7 @@ export const TherapyLayout = ({
     const clientSpecificRoutes = ['/logs', '/charts', '/goals', '/interventions', '/team', '/client-profile'];
     return clientSpecificRoutes.includes(window.location.pathname);
   };
+
   return <div className="flex h-screen w-full overflow-hidden">
       <div className={cn("h-screen border-r bg-white transition-all duration-300 flex flex-col", collapsed ? "w-[70px]" : "w-[250px]")}>
         <div className="flex items-center justify-between h-16 px-4 border-b">
@@ -201,9 +230,11 @@ export const TherapyLayout = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-client">No client selected</SelectItem>
-                  {clients.map(client => <SelectItem key={client.id} value={client.id}>
-                      {client.name}
-                    </SelectItem>)}
+                  {therapistData && Object.keys(therapistData.clients).map(
+                    (clientName) => <SelectItem key={clientName} value={clientName}>
+                      {clientName}
+                    </SelectItem>)
+                  }
                 </SelectContent>
               </Select>
             </div>
@@ -213,9 +244,9 @@ export const TherapyLayout = ({
 
               </div>
 
-              <div className="text-xs text-muted-foreground hidden md:block">
-                Last synced: {lastSynced}
-              </div>
+              {lastSyncedAt && <div className="text-xs text-muted-foreground hidden md:block">
+                Last synced: {formatDistanceToNow(new Date(lastSyncedAt), { addSuffix: true })}
+              </div>}
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -229,7 +260,10 @@ export const TherapyLayout = ({
           </div>
         </header>
         <main className="p-4 md:p-6 flex-1 overflow-y-auto">
-          {isClientSpecificPage() && !selectedClient ? <div className="flex items-center justify-center h-full">
+          {loading ? <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-therapy-blue"></div>
+          </div> :
+          (isClientSpecificPage() && !selectedClient ? <div className="flex items-center justify-center h-full">
               <div className="text-center p-6 max-w-md">
                 <UserRound className="mx-auto h-12 w-12 text-muted-foreground" />
                 <h3 className="mt-4 text-lg font-medium">No client selected</h3>
@@ -237,7 +271,7 @@ export const TherapyLayout = ({
                   Please select a client from the dropdown above to view their information.
                 </p>
               </div>
-            </div> : childrenWithProps}
+            </div> : children)}
         </main>
       </div>
     </div>;

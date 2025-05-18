@@ -7,6 +7,8 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { format } from "date-fns";
 import { Filter, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useClientData } from "@/hooks/useClientData";
+
 // import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
 
 // Dummy data for session logs
@@ -79,6 +81,9 @@ const sessionLogs = [
 ];
 
 const SessionLogs: React.FC = () => {
+  const { clientData } = useClientData();
+  console.log("Session logs printing clientData:", clientData);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   // Sample disruptive behaviors for the create log dialog
