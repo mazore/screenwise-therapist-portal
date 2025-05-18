@@ -86,16 +86,6 @@ const SessionLogs: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Sample disruptive behaviors for the create log dialog
-  const disruptiveBehaviors = [
-    "Gagging",
-    "Spitting out food",
-    "Improper chewing",
-    "Crying",
-    "Choking",
-    "Refusal"
-  ];
-
   // Filter logs based on search term
   const filteredLogs = sessionLogs.filter(log =>
     log.meal.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,7 +121,6 @@ const SessionLogs: React.FC = () => {
             <Button variant="outline" size="icon">
               <Download className="h-4 w-4" />
             </Button>
-            {/* <CreateLogDialog disruptiveBehaviors={disruptiveBehaviors} /> */}
           </div>
         </div>
 
