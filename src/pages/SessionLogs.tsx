@@ -12,73 +12,73 @@ import { useClientData } from "@/hooks/useClientData";
 // import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
 
 // Dummy data for session logs
-const sessionLogs = [
-  {
-    id: 1,
-    dateTime: new Date("2024-04-16T12:30:00"),
-    meal: "Lunch",
-    progressionLevel: "Level 2",
-    bites: 6,
-    duration: "15:20",
-    success: 7,
-    foods: "Mashed potatoes, steamed carrots",
-    disruptiveBehaviors: ["Gagging", "Spitting out food"],
-    keyCircumstances: ["Non-routine setting"],
-    comments: "Showed improvement with texture acceptance"
-  },
-  {
-    id: 2,
-    dateTime: new Date("2024-04-16T08:15:00"),
-    meal: "Breakfast",
-    progressionLevel: "Level 2",
-    bites: 4,
-    duration: "12:45",
-    success: 6,
-    foods: "Oatmeal, banana puree",
-    disruptiveBehaviors: ["Improper chewing"],
-    keyCircumstances: ["New medication"],
-    comments: "Morning session - slightly less cooperative than usual"
-  },
-  {
-    id: 3,
-    dateTime: new Date("2024-04-15T18:00:00"),
-    meal: "Dinner",
-    progressionLevel: "Level 1",
-    bites: 5,
-    duration: "20:10",
-    success: 8,
-    foods: "Pureed chicken, mashed sweet potato",
-    disruptiveBehaviors: [],
-    keyCircumstances: [],
-    comments: "Good engagement throughout session"
-  },
-  {
-    id: 4,
-    dateTime: new Date("2024-04-14T12:00:00"),
-    meal: "Lunch",
-    progressionLevel: "Level 3",
-    bites: 8,
-    duration: "18:30",
-    success: 9,
-    foods: "Small pasta pieces, pureed vegetables",
-    disruptiveBehaviors: [],
-    keyCircumstances: ["Sitting at dining table"],
-    comments: "Excellent progress with new food textures"
-  },
-  {
-    id: 5,
-    dateTime: new Date("2024-04-13T17:45:00"),
-    meal: "Dinner",
-    progressionLevel: "Level 2",
-    bites: 5,
-    duration: "16:15",
-    success: 7,
-    foods: "Mashed sweet potato, soft rice",
-    disruptiveBehaviors: ["Crying"],
-    keyCircumstances: ["Sickness"],
-    comments: "Slightly resistant due to mild cold symptoms"
-  }
-];
+// const sessionLogs = [
+//   {
+//     id: 1,
+//     dateTime: new Date("2024-04-16T12:30:00"),
+//     meal: "Lunch",
+//     progressionLevel: "Level 2",
+//     bites: 6,
+//     duration: "15:20",
+//     success: 7,
+//     foods: "Mashed potatoes, steamed carrots",
+//     disruptiveBehaviors: ["Gagging", "Spitting out food"],
+//     keyCircumstances: ["Non-routine setting"],
+//     comments: "Showed improvement with texture acceptance"
+//   },
+//   {
+//     id: 2,
+//     dateTime: new Date("2024-04-16T08:15:00"),
+//     meal: "Breakfast",
+//     progressionLevel: "Level 2",
+//     bites: 4,
+//     duration: "12:45",
+//     success: 6,
+//     foods: "Oatmeal, banana puree",
+//     disruptiveBehaviors: ["Improper chewing"],
+//     keyCircumstances: ["New medication"],
+//     comments: "Morning session - slightly less cooperative than usual"
+//   },
+//   {
+//     id: 3,
+//     dateTime: new Date("2024-04-15T18:00:00"),
+//     meal: "Dinner",
+//     progressionLevel: "Level 1",
+//     bites: 5,
+//     duration: "20:10",
+//     success: 8,
+//     foods: "Pureed chicken, mashed sweet potato",
+//     disruptiveBehaviors: [],
+//     keyCircumstances: [],
+//     comments: "Good engagement throughout session"
+//   },
+//   {
+//     id: 4,
+//     dateTime: new Date("2024-04-14T12:00:00"),
+//     meal: "Lunch",
+//     progressionLevel: "Level 3",
+//     bites: 8,
+//     duration: "18:30",
+//     success: 9,
+//     foods: "Small pasta pieces, pureed vegetables",
+//     disruptiveBehaviors: [],
+//     keyCircumstances: ["Sitting at dining table"],
+//     comments: "Excellent progress with new food textures"
+//   },
+//   {
+//     id: 5,
+//     dateTime: new Date("2024-04-13T17:45:00"),
+//     meal: "Dinner",
+//     progressionLevel: "Level 2",
+//     bites: 5,
+//     duration: "16:15",
+//     success: 7,
+//     foods: "Mashed sweet potato, soft rice",
+//     disruptiveBehaviors: ["Crying"],
+//     keyCircumstances: ["Sickness"],
+//     comments: "Slightly resistant due to mild cold symptoms"
+//   }
+// ];
 
 const SessionLogs: React.FC = () => {
   const { clientData } = useClientData();
@@ -86,12 +86,27 @@ const SessionLogs: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Check if clientData is available and has session logs
+  const sessionLogs = clientData?.mealHistory || [];
+
   // Filter logs based on search term
-  const filteredLogs = sessionLogs.filter(log =>
-    log.meal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.foods.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.comments.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // const filteredLogs = sessionLogs.filter(log =>
+  //   log.meal.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   log.foods.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //   log.comments.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
+
+  const filteredLogs = sessionLogs.filter((log) => {
+    const meal = log.mealType?.toLowerCase() || "";
+    const foods = (log.mealAttributes || []).join(" ").toLowerCase();
+    const comments = log.comment?.toLowerCase() || "";
+    return (
+      meal.includes(searchTerm.toLowerCase()) ||
+      foods.includes(searchTerm.toLowerCase()) ||
+      comments.includes(searchTerm.toLowerCase())
+    );
+  });
+
 
   return (
     <TherapyLayout>
@@ -150,28 +165,47 @@ const SessionLogs: React.FC = () => {
                     filteredLogs.map((log) => (
                       <TableRow key={log.id} className="hover:bg-muted/50 cursor-pointer">
                         <TableCell>
-                          {format(log.dateTime, "MMM d, yyyy h:mm a")}
+                          {log.mealStartTime ? (
+                            <div>
+                              <div>{format(new Date(log.mealStartTime), "MMM d, yyyy")}</div>
+                              <div>{format(new Date(log.mealStartTime), "h:mm a")}</div>
+                            </div>
+                          ) : "N/A"}
                         </TableCell>
-                        <TableCell>{log.meal}</TableCell>
-                        <TableCell>{log.progressionLevel}</TableCell>
-                        <TableCell>{log.bites}</TableCell>
-                        <TableCell>{log.duration}</TableCell>
-                        <TableCell>{log.success}/10</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {log.foods}
+                        <TableCell>{log.mealType ? log.mealType.charAt(0).toUpperCase() + log.mealType.slice(1) : "—"}</TableCell>
+                        <TableCell>{log.level ?? "—"}</TableCell>
+                        <TableCell>{log.bitesTaken}</TableCell>
+                        <TableCell>
+                          {typeof log.elapsedSeconds === "number" ? (
+                            (() => {
+                              const minutes = Math.floor(log.elapsedSeconds / 60);
+                              const seconds = Math.round(log.elapsedSeconds % 60);
+                              return `${minutes}m ${seconds}s`;
+                            })()
+                          ) : "N/A"}
                         </TableCell>
                         <TableCell>
-                          {log.disruptiveBehaviors.length > 0
+                          {typeof log.successRating === "number"
+                            ? `${log.successRating}/10`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {(log.foods || []).length > 0
+                            ? log.foods.join(", ")
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {(log.disruptiveBehaviors || []).length > 0
                             ? log.disruptiveBehaviors.join(", ")
-                            : "None"}
+                            : "—"}
                         </TableCell>
                         <TableCell>
-                          {log.keyCircumstances.length > 0
-                            ? log.keyCircumstances.join(", ")
-                            : "None"}
+                          {(log.mealAttributes || []).length > 0
+                            ? log.mealAttributes.join(", ")
+                            : "—"}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
-                          {log.comments}
+                          {log.comment || "—"}
                         </TableCell>
                       </TableRow>
                     ))
