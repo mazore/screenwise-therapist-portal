@@ -21,7 +21,7 @@ const SessionLogs: React.FC = () => {
   const sessionLogs = clientData?.mealHistory || [];
 
   // Filter logs based on search term
-  const filteredLogs = sessionLogs.filter((log) => {
+  const filteredLogs = sessionLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
     const meal = log.mealType?.toLowerCase() || "";
     const foods = (log.mealAttributes || []).join(" ").toLowerCase();
     const comments = log.comment?.toLowerCase() || "";
@@ -112,6 +112,8 @@ const SessionLogs: React.FC = () => {
                         <TableCell>
                           {typeof log.successRating === "number"
                             ? `${log.successRating}/10`
+                            : typeof log.rating === "number"
+                            ? `${log.rating}/10`
                             : "—"}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
@@ -126,7 +128,12 @@ const SessionLogs: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           {(log.mealAttributes || []).length > 0
-                            ? log.mealAttributes.join(", ")
+                            ? log.mealAttributes
+                                .map((circ) => 
+                                  circ.toLowerCase().split("_").map((word) => 
+                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                  ).join(" ")
+                                ).join(", ")
                             : "—"}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
