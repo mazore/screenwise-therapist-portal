@@ -9,6 +9,8 @@ import { Filter, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useClientData } from "@/hooks/useClientData";
 
+import { getPaginationRange } from "@/lib/utils"; 
+
 //import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
 
 const SessionLogs: React.FC = () => {
@@ -20,8 +22,19 @@ const SessionLogs: React.FC = () => {
   // Check if clientData is available and has session logs
   const sessionLogs = clientData?.mealHistory || [];
 
+  //NTracks current page number
+  const [currentPage, setCurrentPage] = useState(1);
+  const logsPerPage = 10;
+
+  //Compute sliced logs for current page
+  const startIndex = (currentPage - 1) * logsPerPage;
+  const endIndex = startIndex + logsPerPage;
+  const pagedLogs = sessionLogs.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(sessionLogs.length / 10);
+
+
   // Filter logs based on search term
-  const filteredLogs = sessionLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
+  const filteredLogs = pagedLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
     const meal = log.mealType?.toLowerCase() || "";
     const foods = (log.mealAttributes || []).join(" ").toLowerCase();
     const comments = log.comment?.toLowerCase() || "";
@@ -155,20 +168,47 @@ const SessionLogs: React.FC = () => {
             <div className="mt-4">
               <Pagination>
                 <PaginationContent>
+                  {/* Previous page button */}
                   <PaginationItem>
-                    <PaginationPrevious href="#" />
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                    />
                   </PaginationItem>
+
+                  {/* Dynamically generate page numbers and ellipses */}
+                  {getPaginationRange(currentPage, totalPages).map((page, index) => (
+                    <PaginationItem key={index}>
+                      {page === "..." ? (
+                        <span className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        // Render actual page number link
+                        <PaginationLink
+                          href="#"
+                          isActive={page === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                        >
+                          {page}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+
+                  {/* Next page button */}
                   <PaginationItem>
-                    <PaginationLink href="#" isActive>1</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink href="#">2</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink href="#">3</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext href="#" />
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                      }}
+                    />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
