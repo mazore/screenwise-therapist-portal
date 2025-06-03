@@ -26,3 +26,14 @@ export function getPaginationRange(currentPage: number, totalPages: number): (nu
 
   return range;
 }
+
+/*Returns the name of the progression stage corresponding to the given UUID.
+ If the UUID is not found or undefined, returns a placeholder "—". */
+export function getProgressionName(progressionStages: { uuid: string; name: string }[], progressionUuid: string | undefined): string {
+  if (!progressionUuid) return "—";
+  const stage = progressionStages.find(stage => stage.uuid === progressionUuid);
+  if (!stage) return "—";
+
+  // Replace the dot after the number with a dash and space, e.g. "1. Beginner" => "1 - Beginner"
+  return stage.name.replace(".", " -");
+}

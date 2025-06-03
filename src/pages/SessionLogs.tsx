@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Filter, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useClientData } from "@/hooks/useClientData";
 
-import { getPaginationRange } from "@/lib/utils"; 
+import { getPaginationRange, getProgressionName } from "@/lib/utils";
 
 //import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
 
@@ -22,29 +22,44 @@ const SessionLogs: React.FC = () => {
   // Check if clientData is available and has session logs
   const sessionLogs = clientData?.mealHistory || [];
 
-  //NTracks current page number
+  //Tracks current page number
   const [currentPage, setCurrentPage] = useState(1);
-  const logsPerPage = 10;
 
-  //Compute sliced logs for current page
-  const startIndex = (currentPage - 1) * logsPerPage;
-  const endIndex = startIndex + logsPerPage;
-  const pagedLogs = sessionLogs.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(sessionLogs.length / 10);
+  // Reset current page when switching changes
+  // Clear search term when switching clients
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchTerm(""); // optional: clear search on client switch
+  }, [clientData]);
+
+  // Reset current page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
 
   // Filter logs based on search term
-  const filteredLogs = pagedLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
+  const filteredLogs = sessionLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
     const meal = log.mealType?.toLowerCase() || "";
-    const foods = (log.mealAttributes || []).join(" ").toLowerCase();
+    const keyNotes = (log.mealAttributes || []).join(" ").toLowerCase();
     const comments = log.comment?.toLowerCase() || "";
+    const level = getProgressionName(clientData?.progressionStages || [], log.progressionUuid).toLowerCase();
+    const rating = log.successRating || log.rating
     return (
       meal.includes(searchTerm.toLowerCase()) ||
-      foods.includes(searchTerm.toLowerCase()) ||
-      comments.includes(searchTerm.toLowerCase())
+      keyNotes.includes(searchTerm.toLowerCase()) ||
+      comments.includes(searchTerm.toLowerCase()) ||
+      level.includes(searchTerm.toLowerCase()) ||
+      (rating ? rating.toString() + "/10" : "").includes(searchTerm)
     );
   });
 
+  //Compute sliced logs for current page
+  const logsPerPage = 10;
+  const startIndex = (currentPage - 1) * logsPerPage;
+  const endIndex = startIndex + logsPerPage;
+  const pagedLogs = filteredLogs.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredLogs.length / 10);
 
   return (
     <TherapyLayout>
@@ -68,12 +83,12 @@ const SessionLogs: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
+            {/*<Button variant="outline" size="icon">
               <Filter className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="icon">
               <Download className="h-4 w-4" />
-            </Button>
+            </Button>*/}
           </div>
         </div>
 
@@ -99,8 +114,8 @@ const SessionLogs: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.length > 0 ? (
-                    filteredLogs.map((log) => (
+                  {pagedLogs.length > 0 ? (
+                    pagedLogs.map((log) => (
                       <TableRow key={log.id} className="hover:bg-muted/50 cursor-pointer">
                         <TableCell>
                           {log.mealStartTime ? (
@@ -111,7 +126,7 @@ const SessionLogs: React.FC = () => {
                           ) : "—"}
                         </TableCell>
                         <TableCell>{log.mealType ? log.mealType.charAt(0).toUpperCase() + log.mealType.slice(1) : "—"}</TableCell>
-                        <TableCell>{log.level ?? "—"}</TableCell>
+                        <TableCell>{getProgressionName(clientData?.progressionStages || [], log.progressionUuid)}</TableCell>
                         <TableCell>{log.bitesTaken}</TableCell>
                         <TableCell>
                           {typeof log.elapsedSeconds === "number" ? (
