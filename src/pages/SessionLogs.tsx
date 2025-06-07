@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,76 +9,9 @@ import { Filter, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useClientData } from "@/hooks/useClientData";
 
-// import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
+import { getPaginationRange, getProgressionName } from "@/lib/utils";
 
-// Dummy data for session logs
-const sessionLogs = [
-  {
-    id: 1,
-    dateTime: new Date("2024-04-16T12:30:00"),
-    meal: "Lunch",
-    progressionLevel: "Level 2",
-    bites: 6,
-    duration: "15:20",
-    success: 7,
-    foods: "Mashed potatoes, steamed carrots",
-    disruptiveBehaviors: ["Gagging", "Spitting out food"],
-    keyCircumstances: ["Non-routine setting"],
-    comments: "Showed improvement with texture acceptance"
-  },
-  {
-    id: 2,
-    dateTime: new Date("2024-04-16T08:15:00"),
-    meal: "Breakfast",
-    progressionLevel: "Level 2",
-    bites: 4,
-    duration: "12:45",
-    success: 6,
-    foods: "Oatmeal, banana puree",
-    disruptiveBehaviors: ["Improper chewing"],
-    keyCircumstances: ["New medication"],
-    comments: "Morning session - slightly less cooperative than usual"
-  },
-  {
-    id: 3,
-    dateTime: new Date("2024-04-15T18:00:00"),
-    meal: "Dinner",
-    progressionLevel: "Level 1",
-    bites: 5,
-    duration: "20:10",
-    success: 8,
-    foods: "Pureed chicken, mashed sweet potato",
-    disruptiveBehaviors: [],
-    keyCircumstances: [],
-    comments: "Good engagement throughout session"
-  },
-  {
-    id: 4,
-    dateTime: new Date("2024-04-14T12:00:00"),
-    meal: "Lunch",
-    progressionLevel: "Level 3",
-    bites: 8,
-    duration: "18:30",
-    success: 9,
-    foods: "Small pasta pieces, pureed vegetables",
-    disruptiveBehaviors: [],
-    keyCircumstances: ["Sitting at dining table"],
-    comments: "Excellent progress with new food textures"
-  },
-  {
-    id: 5,
-    dateTime: new Date("2024-04-13T17:45:00"),
-    meal: "Dinner",
-    progressionLevel: "Level 2",
-    bites: 5,
-    duration: "16:15",
-    success: 7,
-    foods: "Mashed sweet potato, soft rice",
-    disruptiveBehaviors: ["Crying"],
-    keyCircumstances: ["Sickness"],
-    comments: "Slightly resistant due to mild cold symptoms"
-  }
-];
+//import { CreateLogDialog } from "@/components/logs/CreateLogDialog";
 
 const SessionLogs: React.FC = () => {
   const { clientData } = useClientData();
@@ -86,12 +19,47 @@ const SessionLogs: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Check if clientData is available and has session logs
+  const sessionLogs = clientData?.mealHistory || [];
+
+  //Tracks current page number
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset current page when switching changes
+  // Clear search term when switching clients
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchTerm(""); // optional: clear search on client switch
+  }, [clientData]);
+
+  // Reset current page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+
   // Filter logs based on search term
-  const filteredLogs = sessionLogs.filter(log =>
-    log.meal.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.foods.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.comments.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLogs = sessionLogs.sort((a, b) => (b.mealStartTime - a.mealStartTime)).filter((log) => {
+    const meal = log.mealType?.toLowerCase() || "";
+    const keyNotes = (log.mealAttributes || []).join(" ").toLowerCase();
+    const comments = log.comment?.toLowerCase() || "";
+    const level = getProgressionName(clientData?.progressionStages || [], log.progressionUuid).toLowerCase();
+    const rating = log.successRating || log.rating
+    return (
+      meal.includes(searchTerm.toLowerCase()) ||
+      keyNotes.includes(searchTerm.toLowerCase()) ||
+      comments.includes(searchTerm.toLowerCase()) ||
+      level.includes(searchTerm.toLowerCase()) ||
+      (rating ? rating.toString() + "/10" : "").includes(searchTerm)
+    );
+  });
+
+  //Compute sliced logs for current page
+  const logsPerPage = 10;
+  const startIndex = (currentPage - 1) * logsPerPage;
+  const endIndex = startIndex + logsPerPage;
+  const pagedLogs = filteredLogs.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredLogs.length / 10);
 
   return (
     <TherapyLayout>
@@ -115,12 +83,12 @@ const SessionLogs: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" size="icon">
+            {/*<Button variant="outline" size="icon">
               <Filter className="h-4 w-4" />
             </Button>
             <Button variant="outline" size="icon">
               <Download className="h-4 w-4" />
-            </Button>
+            </Button>*/}
           </div>
         </div>
 
@@ -146,32 +114,58 @@ const SessionLogs: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.length > 0 ? (
-                    filteredLogs.map((log) => (
+                  {pagedLogs.length > 0 ? (
+                    pagedLogs.map((log) => (
                       <TableRow key={log.id} className="hover:bg-muted/50 cursor-pointer">
                         <TableCell>
-                          {format(log.dateTime, "MMM d, yyyy h:mm a")}
+                          {log.mealStartTime ? (
+                            <div>
+                              <div>{format(new Date(log.mealStartTime), "MMM d, yyyy")}</div>
+                              <div>{format(new Date(log.mealStartTime), "h:mm a")}</div>
+                            </div>
+                          ) : "—"}
                         </TableCell>
-                        <TableCell>{log.meal}</TableCell>
-                        <TableCell>{log.progressionLevel}</TableCell>
-                        <TableCell>{log.bites}</TableCell>
-                        <TableCell>{log.duration}</TableCell>
-                        <TableCell>{log.success}/10</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {log.foods}
+                        <TableCell>{log.mealType ? log.mealType.charAt(0).toUpperCase() + log.mealType.slice(1) : "—"}</TableCell>
+                        <TableCell>{getProgressionName(clientData?.progressionStages || [], log.progressionUuid)}</TableCell>
+                        <TableCell>{log.bitesTaken}</TableCell>
+                        <TableCell>
+                          {typeof log.elapsedSeconds === "number" ? (
+                            (() => {
+                              const minutes = Math.floor(log.elapsedSeconds / 60);
+                              const seconds = Math.round(log.elapsedSeconds % 60);
+                              return `${minutes}m ${seconds}s`;
+                            })()
+                          ) : "—"}
                         </TableCell>
                         <TableCell>
-                          {log.disruptiveBehaviors.length > 0
+                          {typeof log.successRating === "number"
+                            ? `${log.successRating}/10`
+                            : typeof log.rating === "number"
+                            ? `${log.rating}/10`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">
+                          {(log.foods || []).length > 0
+                            ? log.foods.join(", ")
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {(log.disruptiveBehaviors || []).length > 0
                             ? log.disruptiveBehaviors.join(", ")
-                            : "None"}
+                            : "—"}
                         </TableCell>
                         <TableCell>
-                          {log.keyCircumstances.length > 0
-                            ? log.keyCircumstances.join(", ")
-                            : "None"}
+                          {(log.mealAttributes || []).length > 0
+                            ? log.mealAttributes
+                                .map((circ) => 
+                                  circ.toLowerCase().split("_").map((word) => 
+                                    word.charAt(0).toUpperCase() + word.slice(1)
+                                  ).join(" ")
+                                ).join(", ")
+                            : "—"}
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate">
-                          {log.comments}
+                          {log.comment || "—"}
                         </TableCell>
                       </TableRow>
                     ))
@@ -189,20 +183,47 @@ const SessionLogs: React.FC = () => {
             <div className="mt-4">
               <Pagination>
                 <PaginationContent>
+                  {/* Previous page button */}
                   <PaginationItem>
-                    <PaginationPrevious href="#" />
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage > 1) setCurrentPage(currentPage - 1);
+                      }}
+                    />
                   </PaginationItem>
+
+                  {/* Dynamically generate page numbers and ellipses */}
+                  {getPaginationRange(currentPage, totalPages).map((page, index) => (
+                    <PaginationItem key={index}>
+                      {page === "..." ? (
+                        <span className="px-2 text-muted-foreground">...</span>
+                      ) : (
+                        // Render actual page number link
+                        <PaginationLink
+                          href="#"
+                          isActive={page === currentPage}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(page);
+                          }}
+                        >
+                          {page}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ))}
+
+                  {/* Next page button */}
                   <PaginationItem>
-                    <PaginationLink href="#" isActive>1</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink href="#">2</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink href="#">3</PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext href="#" />
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                      }}
+                    />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>
