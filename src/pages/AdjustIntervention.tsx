@@ -39,8 +39,6 @@ interface DisruptiveBehavior {
 interface KeyCircumstance {
   id: string;
   label: string;
-  custom?: boolean;
-  value?: string;
 }
 
 const AdjustIntervention = () => {
@@ -72,34 +70,33 @@ const AdjustIntervention = () => {
     rewardTime: "02:30",
     sessionsToAdvance: 3
   }]);
-  const [finalRewardTime, setFinalRewardTime] = useState(6);
-  const [weightLogFrequency, setWeightLogFrequency] = useState("Weekly");
+  // const [finalRewardTime, setFinalRewardTime] = useState(6);
+  // const [weightLogFrequency, setWeightLogFrequency] = useState("Weekly");
   const [allowCaregiverOverride, setAllowCaregiverOverride] = useState(false);
   const [enableSwallowConfirm, setEnableSwallowConfirm] = useState(false);
-  const [intervalWording, setIntervalWording] = useState("Chew");
-  const [trackAcceptance, setTrackAcceptance] = useState(false);
-  const [trackSwallowing, setTrackSwallowing] = useState(false);
+  // const [intervalWording, setIntervalWording] = useState("Chew");
+  // const [trackAcceptance, setTrackAcceptance] = useState(false);
+  // const [trackSwallowing, setTrackSwallowing] = useState(false);
 
   const [disruptiveBehaviors, setDisruptiveBehaviors] = useState<DisruptiveBehavior[]>([
     { id: "choking", label: "Choking" },
     { id: "gagging", label: "Gagging" },
-    { id: "spitting", label: "Spitting out food" },
-    { id: "refusal", label: "Refusal to accept food" },
+    { id: "spittingOutFood", label: "Spitting out food" },
+    { id: "refusalToAcceptFood", label: "Refusal to accept food" },
     { id: "coughing", label: "Coughing" },
     { id: "improperChewing", label: "Improper chewing" },
     { id: "assistedFeeding", label: "Assisted feeding" },
     { id: "vomiting", label: "Vomiting" },
     { id: "packing", label: "Packing" },
-    { id: "other1", label: "Other", custom: true }
+    { id: "notSittingAtTable", label: "Not sitting at the table" },
+    { id: "other", label: "Other", custom: true }
   ]);
 
-  const [keyCircumstances, setKeyCircumstances] = useState<KeyCircumstance[]>([
-    { id: "sickness", label: "Sickness" },
-    { id: "nonRoutine", label: "Non-routine setting" },
-    { id: "newMedication", label: "New medication" },
-    { id: "notSitting", label: "Not sitting down" },
-    { id: "other1", label: "Other", custom: true }
-  ]);
+  // const [keyCircumstances, setKeyCircumstances] = useState<KeyCircumstance[]>([
+  //   { id: "SICKNESS", label: "Sickness" },
+  //   { id: "NON_ROUTINE_SETTING", label: "Non-routine setting" },
+  //   { id: "NEW_MEDICATION", label: "New medication" },
+  // ]);
 
   const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>([]);
   const [selectedCircumstances, setSelectedCircumstances] = useState<string[]>([]);
@@ -129,7 +126,7 @@ const AdjustIntervention = () => {
   // Testing backend endpoint
   React.useEffect(() => {
     const endpoint = 'therapist_set_progression_uuid';
-    makeAPICall(endpoint, { progressionUuid: 'b1b4384b-c101-4867-a28d-384f08e7e8e3' })
+    makeAPICall(endpoint, { progressionUuid: '870d964f-678c-4c66-9c89-a0d0ef85b817' })
       .then((responseJSON) => console.log(`Testing response from backend (/${endpoint}):`, responseJSON));
   }, [accounts, instance, selectedClient, therapistData, makeAPICall]);
 
@@ -225,63 +222,63 @@ const AdjustIntervention = () => {
     }
   };
 
-  const handleCircumstanceChange = (circumstanceId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCircumstances([...selectedCircumstances, circumstanceId]);
+  // const handleCircumstanceChange = (circumstanceId: string, checked: boolean) => {
+  //   if (checked) {
+  //     setSelectedCircumstances([...selectedCircumstances, circumstanceId]);
 
-      const circumstance = keyCircumstances.find(c => c.id === circumstanceId);
-      if (circumstance?.custom) {
-        const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
-        const nextOtherId = `other${otherNumber + 1}`;
+  //     const circumstance = keyCircumstances.find(c => c.id === circumstanceId);
+  //     if (circumstance?.custom) {
+  //       const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
+  //       const nextOtherId = `other${otherNumber + 1}`;
 
-        if (!keyCircumstances.some(c => c.id === nextOtherId)) {
-          setKeyCircumstances([
-            ...keyCircumstances,
-            { id: nextOtherId, label: `Other ${otherNumber + 1}`, custom: true }
-          ]);
-        }
-      }
-    } else {
-      setSelectedCircumstances(selectedCircumstances.filter(id => id !== circumstanceId));
+  //       if (!keyCircumstances.some(c => c.id === nextOtherId)) {
+  //         setKeyCircumstances([
+  //           ...keyCircumstances,
+  //           { id: nextOtherId, label: `Other ${otherNumber + 1}`, custom: true }
+  //         ]);
+  //       }
+  //     }
+  //   } else {
+  //     setSelectedCircumstances(selectedCircumstances.filter(id => id !== circumstanceId));
 
-      // Clean up custom values when unchecking
-      if (circumstanceId.startsWith("other")) {
-        // Remove the custom value for this ID
-        const newCustomValues = { ...circumstanceCustomValues };
-        delete newCustomValues[circumstanceId];
-        setCircumstanceCustomValues(newCustomValues);
+  //     // Clean up custom values when unchecking
+  //     if (circumstanceId.startsWith("other")) {
+  //       // Remove the custom value for this ID
+  //       const newCustomValues = { ...circumstanceCustomValues };
+  //       delete newCustomValues[circumstanceId];
+  //       setCircumstanceCustomValues(newCustomValues);
 
-        // Clean up any "other" items after this one
-        const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
+  //       // Clean up any "other" items after this one
+  //       const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
 
-        // Find the highest selected "other" circumstance
-        const highestSelectedOther = selectedCircumstances
-          .filter(id => id.startsWith("other") && id !== circumstanceId)
-          .map(id => parseInt(id.replace("other", "")) || 1)
-          .reduce((max, num) => Math.max(max, num), 0);
+  //       // Find the highest selected "other" circumstance
+  //       const highestSelectedOther = selectedCircumstances
+  //         .filter(id => id.startsWith("other") && id !== circumstanceId)
+  //         .map(id => parseInt(id.replace("other", "")) || 1)
+  //         .reduce((max, num) => Math.max(max, num), 0);
 
-        // Keep only circumstances up to the highest selected one, plus one more for the next addition
-        if (highestSelectedOther > 0) {
-          setKeyCircumstances(keyCircumstances.filter(c => {
-            if (c.id.startsWith("other")) {
-              const num = parseInt(c.id.replace("other", "")) || 1;
-              return num <= highestSelectedOther + 1;
-            }
-            return true;
-          }));
-        } else {
-          // If no others are selected, just keep the first "other" option
-          setKeyCircumstances(keyCircumstances.filter(c => {
-            if (c.id.startsWith("other")) {
-              const num = parseInt(c.id.replace("other", "")) || 1;
-              return num <= 1;
-            }
-            return true;
-          }));
-        }
-      }
-    }
-  };
+  //       // Keep only circumstances up to the highest selected one, plus one more for the next addition
+  //       if (highestSelectedOther > 0) {
+  //         setKeyCircumstances(keyCircumstances.filter(c => {
+  //           if (c.id.startsWith("other")) {
+  //             const num = parseInt(c.id.replace("other", "")) || 1;
+  //             return num <= highestSelectedOther + 1;
+  //           }
+  //           return true;
+  //         }));
+  //       } else {
+  //         // If no others are selected, just keep the first "other" option
+  //         setKeyCircumstances(keyCircumstances.filter(c => {
+  //           if (c.id.startsWith("other")) {
+  //             const num = parseInt(c.id.replace("other", "")) || 1;
+  //             return num <= 1;
+  //           }
+  //           return true;
+  //         }));
+  //       }
+  //     }
+  //   }
+  // };
 
   const handleCustomValueChange = (
     id: string,
