@@ -12,7 +12,7 @@ export const DashboardStats = ({ totalClients, inactiveClients }: DashboardStats
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
       <StatsCard
-        title="Active Clients"
+        title="Tracked Clients"
         value={totalClients.toString()}
         description="Currently in therapy"
         icon={<Users className="h-5 w-5 text-green-500" />}

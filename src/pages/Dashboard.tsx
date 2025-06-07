@@ -72,14 +72,14 @@ const Dashboard = () => {
         </div>
 
         <DashboardStats totalClients={4} inactiveClients={1} />
-        <ClientOverview clients={mockClients} />
+        {/* <ClientOverview clients={mockClients} /> */}
 
         <div className="w-full">
           <SessionTable />
         </div>
-        <div className="w-full">
+        {/* <div className="w-full">
           <RecentActivity />
-        </div>
+        </div> */}
       </div>
     </TherapyLayout>
   );
