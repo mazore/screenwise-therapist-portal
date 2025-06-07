@@ -14,8 +14,7 @@ import { cn } from "@/lib/utils";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from 'date-fns';
-
-const API_URL = 'https://screenwise-backend.azurewebsites.net/';
+import { API_URL } from "@/lib/constants";
 
 interface TherapyLayoutProps {
   children: React.ReactNode;
@@ -26,8 +25,11 @@ export const TherapyLayout = ({
   // Backend connection stuff
   const { accounts, instance } = useMsal();
   const navigate = useNavigate();
-  const { clientData, setClientData } = useClientData();
-  const [therapistData, setTherapistData] = useState(null);
+  const {
+    clientData, setClientData,
+    therapistData, setTherapistData,
+    selectedClient, setSelectedClient
+  } = useClientData();
 
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -51,12 +53,9 @@ export const TherapyLayout = ({
         });
     };
     loadTherapistData();
-  }, [accounts, instance]); // Runs on refresh
+  }, [accounts, instance, setTherapistData]); // Runs on refresh
 
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string | null>(() => {
-    return localStorage.getItem('selectedClient');
-  });
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   useEffect(() => {
     if (selectedClient && therapistData) {
@@ -144,33 +143,6 @@ export const TherapyLayout = ({
     const clientSpecificRoutes = ['/logs', '/charts', '/goals', '/interventions', '/team', '/client-profile'];
     return clientSpecificRoutes.includes(window.location.pathname);
   };
-
-
-
-  // Testing backend endpoint
-  useEffect(() => {
-    if (!selectedClient || !therapistData) {
-      console.warn("No client selected or therapist data not loaded yet. Skipping backend test.");
-      return;
-    }
-    const endpoint = 'therapist_set_progression_uuid';
-    instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
-      .then((tokenResponse) => {
-        return fetch(API_URL + endpoint, {
-          method: 'POST',
-          headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
-          body: JSON.stringify({
-            clientUserId: '22e16a4d-3b1b-42b2-a162-9bd501f0ef8b',
-            clientProfile: 'Evan',
-            progressionUuid: '870d964f-678c-4c66-9c89-a0d0ef85b817'
-          })
-        })
-      })
-      .then((apiResponse) => apiResponse.json())
-      .then((responseJSON) => console.log(`Testing response from backend (/${endpoint}):`, responseJSON));
-  }, [accounts, instance, selectedClient, therapistData]);
-
-
 
   return <div className="flex h-screen w-full overflow-hidden">
       <div className={cn("h-screen border-r bg-white transition-all duration-300 flex flex-col", collapsed ? "w-[70px]" : "w-[250px]")}>

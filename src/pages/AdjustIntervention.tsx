@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Plus, Minus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,6 +19,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useClientData } from "@/hooks/useClientData";
+import { useMsal } from "@azure/msal-react";
+import { API_URL } from "@/lib/constants";
 
 interface Level {
   bites: number;
@@ -40,13 +43,8 @@ interface KeyCircumstance {
   value?: string;
 }
 
-interface AdjustInterventionProps {
-  selectedClient?: string;
-}
-
-const AdjustIntervention = ({
-  selectedClient
-}: AdjustInterventionProps) => {
+const AdjustIntervention = () => {
+  const { accounts, instance } = useMsal();
   const isMobile = useIsMobile();
   const [operationalDefinition, setOperationalDefinition] = useState("");
   const [successRating, setSuccessRating] = useState(7);
@@ -94,7 +92,7 @@ const AdjustIntervention = ({
     { id: "packing", label: "Packing" },
     { id: "other1", label: "Other", custom: true }
   ]);
-  
+
   const [keyCircumstances, setKeyCircumstances] = useState<KeyCircumstance[]>([
     { id: "sickness", label: "Sickness" },
     { id: "nonRoutine", label: "Non-routine setting" },
@@ -102,12 +100,38 @@ const AdjustIntervention = ({
     { id: "notSitting", label: "Not sitting down" },
     { id: "other1", label: "Other", custom: true }
   ]);
-  
+
   const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>([]);
   const [selectedCircumstances, setSelectedCircumstances] = useState<string[]>([]);
-  
+
   const [behaviorCustomValues, setBehaviorCustomValues] = useState<Record<string, string>>({});
   const [circumstanceCustomValues, setCircumstanceCustomValues] = useState<Record<string, string>>({});
+
+  const { therapistData, selectedClient } = useClientData();
+
+  // This is a helper function to make API calls automatically including clientUserId and clientProfile
+  const makeAPICall = React.useCallback((endpoint: string, additionalBodyItems: object) => {
+    return instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
+      .then((tokenResponse) => {
+        return fetch(API_URL + endpoint, {
+          method: 'POST',
+          headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
+          body: JSON.stringify({
+            clientProfile: selectedClient,
+            clientUserId: therapistData.clients[selectedClient].userId,
+            ...additionalBodyItems
+          })
+        })
+      })
+      .then((apiResponse) => apiResponse.json())
+  }, [accounts, instance, selectedClient, therapistData]);
+
+  // Testing backend endpoint
+  React.useEffect(() => {
+    const endpoint = 'therapist_set_progression_uuid';
+    makeAPICall(endpoint, { progressionUuid: 'b1b4384b-c101-4867-a28d-384f08e7e8e3' })
+      .then((responseJSON) => console.log(`Testing response from backend (/${endpoint}):`, responseJSON));
+  }, [accounts, instance, selectedClient, therapistData, makeAPICall]);
 
   const addLevel = () => {
     if (levels.length < 10) {
@@ -142,16 +166,16 @@ const AdjustIntervention = ({
     }
     setLevels(newLevels);
   };
-  
+
   const handleBehaviorChange = (behaviorId: string, checked: boolean) => {
     if (checked) {
       setSelectedBehaviors([...selectedBehaviors, behaviorId]);
-      
+
       const behavior = disruptiveBehaviors.find(b => b.id === behaviorId);
       if (behavior?.custom) {
         const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
         const nextOtherId = `other${otherNumber + 1}`;
-        
+
         if (!disruptiveBehaviors.some(b => b.id === nextOtherId)) {
           setDisruptiveBehaviors([
             ...disruptiveBehaviors,
@@ -161,23 +185,23 @@ const AdjustIntervention = ({
       }
     } else {
       setSelectedBehaviors(selectedBehaviors.filter(id => id !== behaviorId));
-      
+
       // Clean up custom values when unchecking
       if (behaviorId.startsWith("other")) {
         // Remove the custom value for this ID
         const newCustomValues = { ...behaviorCustomValues };
         delete newCustomValues[behaviorId];
         setBehaviorCustomValues(newCustomValues);
-        
+
         // Clean up any "other" items after this one
         const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
-        
+
         // Find the highest selected "other" behavior
         const highestSelectedOther = selectedBehaviors
           .filter(id => id.startsWith("other") && id !== behaviorId)
           .map(id => parseInt(id.replace("other", "")) || 1)
           .reduce((max, num) => Math.max(max, num), 0);
-        
+
         // Keep only behaviors up to the highest selected one, plus one more for the next addition
         if (highestSelectedOther > 0) {
           setDisruptiveBehaviors(disruptiveBehaviors.filter(b => {
@@ -200,16 +224,16 @@ const AdjustIntervention = ({
       }
     }
   };
-  
+
   const handleCircumstanceChange = (circumstanceId: string, checked: boolean) => {
     if (checked) {
       setSelectedCircumstances([...selectedCircumstances, circumstanceId]);
-      
+
       const circumstance = keyCircumstances.find(c => c.id === circumstanceId);
       if (circumstance?.custom) {
         const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
         const nextOtherId = `other${otherNumber + 1}`;
-        
+
         if (!keyCircumstances.some(c => c.id === nextOtherId)) {
           setKeyCircumstances([
             ...keyCircumstances,
@@ -219,23 +243,23 @@ const AdjustIntervention = ({
       }
     } else {
       setSelectedCircumstances(selectedCircumstances.filter(id => id !== circumstanceId));
-      
+
       // Clean up custom values when unchecking
       if (circumstanceId.startsWith("other")) {
         // Remove the custom value for this ID
         const newCustomValues = { ...circumstanceCustomValues };
         delete newCustomValues[circumstanceId];
         setCircumstanceCustomValues(newCustomValues);
-        
+
         // Clean up any "other" items after this one
         const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
-        
+
         // Find the highest selected "other" circumstance
         const highestSelectedOther = selectedCircumstances
           .filter(id => id.startsWith("other") && id !== circumstanceId)
           .map(id => parseInt(id.replace("other", "")) || 1)
           .reduce((max, num) => Math.max(max, num), 0);
-        
+
         // Keep only circumstances up to the highest selected one, plus one more for the next addition
         if (highestSelectedOther > 0) {
           setKeyCircumstances(keyCircumstances.filter(c => {
@@ -258,10 +282,10 @@ const AdjustIntervention = ({
       }
     }
   };
-  
+
   const handleCustomValueChange = (
-    id: string, 
-    value: string, 
+    id: string,
+    value: string,
     isCircumstance: boolean
   ) => {
     if (isCircumstance) {
@@ -275,7 +299,7 @@ const AdjustIntervention = ({
     <TherapyLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold tracking-tight">Adjust Intervention</h1>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Intervention Settings</CardTitle>
@@ -285,12 +309,12 @@ const AdjustIntervention = ({
               <Label htmlFor="operational-definition">
                 Operational Definition of Successful Meal
               </Label>
-              <Textarea 
-                id="operational-definition" 
-                value={operationalDefinition} 
-                onChange={e => setOperationalDefinition(e.target.value)} 
-                placeholder="Enter the operational definition..." 
-                className="min-h-[100px]" 
+              <Textarea
+                id="operational-definition"
+                value={operationalDefinition}
+                onChange={e => setOperationalDefinition(e.target.value)}
+                placeholder="Enter the operational definition..."
+                className="min-h-[100px]"
               />
             </div>
 
@@ -298,18 +322,18 @@ const AdjustIntervention = ({
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Progression Levels</h3>
                 <div className="space-x-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={removeLevel} 
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={removeLevel}
                     disabled={levels.length <= 1}
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="icon" 
-                    onClick={addLevel} 
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={addLevel}
                     disabled={levels.length >= 10}
                   >
                     <Plus className="h-4 w-4" />
@@ -324,33 +348,33 @@ const AdjustIntervention = ({
                       <Label htmlFor={`bites-${index}`}>
                         Level {index + 1}: Number of Bites
                       </Label>
-                      <Input 
-                        id={`bites-${index}`} 
-                        type="number" 
-                        value={level.bites} 
-                        onChange={e => handleLevelChange(index, "bites", e.target.value)} 
-                        min={1} 
+                      <Input
+                        id={`bites-${index}`}
+                        type="number"
+                        value={level.bites}
+                        onChange={e => handleLevelChange(index, "bites", e.target.value)}
+                        min={1}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor={`reward-${index}`}>Reward Time (MM:SS)</Label>
-                      <Input 
-                        id={`reward-${index}`} 
-                        type="text" 
-                        value={level.rewardTime} 
-                        onChange={e => handleLevelChange(index, "rewardTime", e.target.value)} 
-                        pattern="[0-9]{2}:[0-9]{2}" 
-                        placeholder="00:00" 
+                      <Input
+                        id={`reward-${index}`}
+                        type="text"
+                        value={level.rewardTime}
+                        onChange={e => handleLevelChange(index, "rewardTime", e.target.value)}
+                        pattern="[0-9]{2}:[0-9]{2}"
+                        placeholder="00:00"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor={`sessions-${index}`}>Sessions to Advance</Label>
-                      <Input 
-                        id={`sessions-${index}`} 
-                        type="number" 
-                        value={level.sessionsToAdvance} 
-                        onChange={e => handleLevelChange(index, "sessionsToAdvance", parseInt(e.target.value) || 0)} 
-                        min={1} 
+                      <Input
+                        id={`sessions-${index}`}
+                        type="number"
+                        value={level.sessionsToAdvance}
+                        onChange={e => handleLevelChange(index, "sessionsToAdvance", parseInt(e.target.value) || 0)}
+                        min={1}
                       />
                     </div>
                   </div>
@@ -361,12 +385,12 @@ const AdjustIntervention = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Success Rating Needed to Advance ({successRating}/10)</Label>
-                <Slider 
-                  value={[successRating]} 
-                  onValueChange={value => setSuccessRating(value[0])} 
-                  min={1} 
-                  max={10} 
-                  step={1} 
+                <Slider
+                  value={[successRating]}
+                  onValueChange={value => setSuccessRating(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
                 />
               </div>
             </div>
@@ -376,7 +400,7 @@ const AdjustIntervention = ({
                 checked={allowCaregiverOverride}
                 onCheckedChange={checked => setAllowCaregiverOverride(checked === true)}
               />
-              <Label 
+              <Label
                 htmlFor="caregiver-override"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
@@ -389,7 +413,7 @@ const AdjustIntervention = ({
                 checked={enableSwallowConfirm}
                 onCheckedChange={checked => setEnableSwallowConfirm(checked === true)}
               />
-              <Label 
+              <Label
                 htmlFor="swallow-confirm"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
@@ -400,15 +424,15 @@ const AdjustIntervention = ({
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="interval">Chewing Interval (seconds)</Label>
                 <div className="flex items-center space-x-2">
-                  <Input 
-                    id="interval" 
-                    type="number" 
-                    value={chewingInterval} 
-                    onChange={e => setChewingInterval(parseInt(e.target.value) || 0)} 
-                    min={1} 
+                  <Input
+                    id="interval"
+                    type="number"
+                    value={chewingInterval}
+                    onChange={e => setChewingInterval(parseInt(e.target.value) || 0)}
+                    min={1}
                     className="w-32"
                   />
-                  <div className="flex items-center space-x-2">
+                  {/* <div className="flex items-center space-x-2">
                     <Label htmlFor="interval-wording">Interval Wording:</Label>
                     <select
                       id="interval-wording"
@@ -419,13 +443,13 @@ const AdjustIntervention = ({
                       <option value="Chew">Chew</option>
                       <option value="Swallow">Swallow</option>
                     </select>
-                  </div>
+                  </div> */}
                 </div>
               </div>
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="weight-log-frequency">Weight Log Notification Frequency</Label>
-                <Select 
-                  value={weightLogFrequency} 
+                <Select
+                  value={weightLogFrequency}
                   onValueChange={setWeightLogFrequency}
                 >
                   <SelectTrigger>
@@ -438,10 +462,11 @@ const AdjustIntervention = ({
                     <SelectItem value="Monthly">Monthly</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
 
-            <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-6 mt-6`}>
+            {/* <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-6 mt-6`}> */}
+            <div className={`grid 'grid-cols-1' gap-6 mt-6`}>
               <Card>
                 <CardHeader>
                   <CardTitle>Disruptive Behaviors Tracked</CardTitle>
@@ -450,21 +475,21 @@ const AdjustIntervention = ({
                   {disruptiveBehaviors.map((behavior) => (
                     <div key={behavior.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`behavior-${behavior.id}`} 
+                        <Checkbox
+                          id={`behavior-${behavior.id}`}
                           checked={selectedBehaviors.includes(behavior.id)}
                           onCheckedChange={(checked) => handleBehaviorChange(behavior.id, checked === true)}
                         />
-                        <Label 
+                        <Label
                           htmlFor={`behavior-${behavior.id}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
                           {behavior.label}
                         </Label>
                       </div>
-                      
+
                       {behavior.custom && selectedBehaviors.includes(behavior.id) && (
-                        <Input 
+                        <Input
                           placeholder={`Specify ${behavior.label.toLowerCase()}`}
                           value={behaviorCustomValues[behavior.id] || ''}
                           onChange={(e) => handleCustomValueChange(behavior.id, e.target.value, false)}
@@ -475,8 +500,8 @@ const AdjustIntervention = ({
                   ))}
                 </CardContent>
               </Card>
-              
-              <Card>
+
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Key Circumstances Tracked</CardTitle>
                 </CardHeader>
@@ -484,21 +509,21 @@ const AdjustIntervention = ({
                   {keyCircumstances.map((circumstance) => (
                     <div key={circumstance.id} className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id={`circumstance-${circumstance.id}`} 
+                        <Checkbox
+                          id={`circumstance-${circumstance.id}`}
                           checked={selectedCircumstances.includes(circumstance.id)}
                           onCheckedChange={(checked) => handleCircumstanceChange(circumstance.id, checked === true)}
                         />
-                        <Label 
+                        <Label
                           htmlFor={`circumstance-${circumstance.id}`}
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
                           {circumstance.label}
                         </Label>
                       </div>
-                      
+
                       {circumstance.custom && selectedCircumstances.includes(circumstance.id) && (
-                        <Input 
+                        <Input
                           placeholder={`Specify ${circumstance.label.toLowerCase()}`}
                           value={circumstanceCustomValues[circumstance.id] || ''}
                           onChange={(e) => handleCustomValueChange(circumstance.id, e.target.value, true)}
@@ -508,10 +533,10 @@ const AdjustIntervention = ({
                     </div>
                   ))}
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
-            <Card>
+            {/* <Card>
               <CardHeader>
                 <CardTitle>Additional Tracking Settings</CardTitle>
               </CardHeader>
@@ -523,7 +548,7 @@ const AdjustIntervention = ({
                       checked={trackAcceptance}
                       onCheckedChange={(checked) => setTrackAcceptance(checked === true)}
                     />
-                    <Label 
+                    <Label
                       htmlFor="track-acceptance"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
@@ -536,7 +561,7 @@ const AdjustIntervention = ({
                       checked={trackSwallowing}
                       onCheckedChange={(checked) => setTrackSwallowing(checked === true)}
                     />
-                    <Label 
+                    <Label
                       htmlFor="track-swallowing"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
@@ -546,28 +571,28 @@ const AdjustIntervention = ({
                 </div>
               </CardContent>
             </Card>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div className="space-y-2">
                 <Label htmlFor="target-behavior">Target Behavior Wording</Label>
-                <Input 
-                  id="target-behavior" 
-                  value={targetBehaviorWording} 
-                  onChange={e => setTargetBehaviorWording(e.target.value)} 
+                <Input
+                  id="target-behavior"
+                  value={targetBehaviorWording}
+                  onChange={e => setTargetBehaviorWording(e.target.value)}
                   placeholder="e.g., Bite, Swallow, etc."
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="target-behavior-prompt">Target Behavior Prompt Wording</Label>
-                <Input 
-                  id="target-behavior-prompt" 
-                  value={targetBehaviorPromptWording} 
-                  onChange={e => setTargetBehaviorPromptWording(e.target.value)} 
+                <Input
+                  id="target-behavior-prompt"
+                  value={targetBehaviorPromptWording}
+                  onChange={e => setTargetBehaviorPromptWording(e.target.value)}
                   placeholder="e.g., Take a bite, Try a swallow, etc."
                 />
               </div>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </div>
