@@ -66,7 +66,7 @@ export const TherapyLayout = ({
         headers: {'Authorization': 'Bearer ' + accounts[0].idToken},
         body: JSON.stringify({
           clientProfile: selectedClient,
-          clientUserId: therapistData.clients[selectedClient].userId
+          clientUserId: therapistData.clients[selectedClient].userId,
         })
       })
         .then((response) => response.json())
@@ -144,6 +144,33 @@ export const TherapyLayout = ({
     const clientSpecificRoutes = ['/logs', '/charts', '/goals', '/interventions', '/team', '/client-profile'];
     return clientSpecificRoutes.includes(window.location.pathname);
   };
+
+
+
+  // Testing backend endpoint
+  useEffect(() => {
+    if (!selectedClient || !therapistData) {
+      console.warn("No client selected or therapist data not loaded yet. Skipping backend test.");
+      return;
+    }
+    const endpoint = 'therapist_set_progression_uuid';
+    instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
+      .then((tokenResponse) => {
+        return fetch(API_URL + endpoint, {
+          method: 'POST',
+          headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
+          body: JSON.stringify({
+            clientUserId: '22e16a4d-3b1b-42b2-a162-9bd501f0ef8b',
+            clientProfile: 'Evan',
+            progressionUuid: '870d964f-678c-4c66-9c89-a0d0ef85b817'
+          })
+        })
+      })
+      .then((apiResponse) => apiResponse.json())
+      .then((responseJSON) => console.log(`Testing response from backend (/${endpoint}):`, responseJSON));
+  }, [accounts, instance, selectedClient, therapistData]);
+
+
 
   return <div className="flex h-screen w-full overflow-hidden">
       <div className={cn("h-screen border-r bg-white transition-all duration-300 flex flex-col", collapsed ? "w-[70px]" : "w-[250px]")}>
