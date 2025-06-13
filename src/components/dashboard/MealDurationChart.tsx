@@ -1,43 +1,127 @@
-
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
-
-const data = [
-  { date: "Apr 10", duration: 15 },
-  { date: "Apr 11", duration: 18 },
-  { date: "Apr 12", duration: 12 },
-  { date: "Apr 13", duration: 20 },
-  { date: "Apr 14", duration: 16 },
-  { date: "Apr 15", duration: 14 },
-];
+import { useClientData } from "@/hooks/useClientData";
+import computeStats from "@/lib/computeStats";
+import { STATS_TIME_MODES } from "@/lib/utils";
 
 interface MealDurationChartProps {
   timeframe: string;
   onTimeframeChange: (value: string) => void;
 }
 
-export const MealDurationChart = ({ timeframe, onTimeframeChange }: MealDurationChartProps) => {
+export const MealDurationChart = ({
+  timeframe,
+  onTimeframeChange,
+}: MealDurationChartProps) => {
+  const { clientData } = useClientData();
+  const mealHistory = clientData?.mealHistory || [];
+  const [chartData, setChartData] = useState([]);
+
+  useEffect(() => {
+    const timeMode = STATS_TIME_MODES.find((mode) => mode.label === timeframe);
+    if (!timeMode) return;
+
+    const data = computeStats(
+      "mealDuration",
+      (meal) => parseFloat(meal.elapsedSeconds) / 60, // assuming it's in minutes
+      null,
+      timeMode,
+      mealHistory
+    );
+
+    const formatted = data.map((item) => ({
+      date: item.label,
+      duration: item.y,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      rangeLabel : item.rangeLabel || item.label, // Use rangeLabel if available, otherwise fallback to label
+    }));
+
+    setChartData(formatted);
+  }, [timeframe, mealHistory]);
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle>Meal Duration Over Time</CardTitle>
-          <CardDescription>Average meal duration in minutes per day</CardDescription>
+          <CardDescription>
+            Average meal duration in minutes per day
+          </CardDescription>
         </div>
         <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data}>
-            <XAxis dataKey="date" />
+          <LineChart data={chartData}>
+            <XAxis
+              padding={{ right: 20}}
+              dataKey="date"
+              interval={0}
+              tickFormatter={(label, index) => {
+                if (timeframe === "30D") {
+                  return index % 5 === 0 ? label : "";
+                }
+                if (timeframe === "6M" || timeframe === "12M") {
+                  return label.split(" ")[0]; // "Jan 2025" → "Jan"
+                }
+                return label;
+              }}
+            />
+
             <YAxis />
-            <Tooltip formatter={(value) => `${value} mins`} />
-            <Line type="monotone" dataKey="duration" stroke="#4B9CD3" strokeWidth={2} />
+            <Tooltip content={<CustomTooltip timeframe={timeframe} />} />
+            <Line
+              type="monotone"
+              dataKey="duration"
+              stroke="#4B9CD3"
+              strokeWidth={2}
+            />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label, timeframe }: any) => {
+  if (!active || !payload?.[0]) return null;
+
+  const { duration, startTime, endTime } = payload[0].payload;
+
+  const formatDate = (d: Date) =>
+    d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  let labelContent;
+
+  if (timeframe === '6W' || timeframe === '12W') {
+    const start = startTime ? new Date(startTime * 1000) : null;
+    const end = endTime ? new Date(endTime * 1000) : null;
+    labelContent =
+      start && end ? `${formatDate(start)} – ${formatDate(end)}` : label;
+  } else {
+    labelContent = label;
+  }
+
+  return (
+    <div className="rounded bg-white p-2 shadow-md border text-sm">
+      <div className="font-semibold">{labelContent}</div>
+      <div>{duration} mins</div>
+    </div>
   );
 };
