@@ -29,7 +29,8 @@ export const TherapyLayout = ({
   const {
     clientData, setClientData,
     therapistData, setTherapistData,
-    selectedClient, setSelectedClient
+    selectedClient, setSelectedClient,
+    lastSyncedAt, lastSyncedNow
   } = useClientData();
 
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,6 @@ export const TherapyLayout = ({
   }, [accounts, instance, setTherapistData]); // Runs on refresh
 
   const [collapsed, setCollapsed] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   useEffect(() => {
     if (selectedClient && therapistData) {
       localStorage.setItem('selectedClient', selectedClient);
@@ -73,7 +73,7 @@ export const TherapyLayout = ({
         .then((data) => {
           // console.log("Got client data", data);
           setClientData(data);
-          setLastSyncedAt(Date.now());
+          lastSyncedNow();
         })
         .catch((error) => {
           console.error('There was a problem with the fetch operation:', error);

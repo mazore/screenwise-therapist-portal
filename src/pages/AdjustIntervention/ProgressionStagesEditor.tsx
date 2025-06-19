@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Minus } from "lucide-react";
+import { Minus, Trash } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { useMsal } from "@azure/msal-react";
 
@@ -14,6 +14,7 @@ interface ProgressionStagesEditorProps {
   clientData: any;
   /** Azure AD B2C user ID for the selected client (used by the backend) */
   userId?: string;
+  lastSyncedNow: () => void;
 }
 
 /**
@@ -23,6 +24,7 @@ interface ProgressionStagesEditorProps {
 const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
   clientData,
   userId,
+  lastSyncedNow
 }) => {
   const { accounts, instance } = useMsal();
 
@@ -105,7 +107,7 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
             clientUserId: userId,
             progressionStages: stages,
           }),
-        })
+        }).then(lastSyncedNow)
       );
   };
 
@@ -169,7 +171,7 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
   /* ---------- UI ---------- */
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-7">
       <h3 className="text-lg font-semibold">Progression Levels</h3>
 
       {editableStages.length === 0 ? (
@@ -189,6 +191,11 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
               }`}
               style={isCurrent ? { boxShadow: "0 0 0 2px #2563eb" } : undefined}
             >
+              {/* Title showing stage name */}
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white px-3 py-0.5 text-sm font-regular border rounded">
+                Stage {stage.name}
+              </div>
+
               {isCurrent && (
                 <span className="absolute -top-3 left-4 bg-blue-600 text-white text-xs px-2 py-0.5 rounded shadow">
                   Current Stage
@@ -203,13 +210,13 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
                   title="Remove this level"
                   onClick={() => removeProgressionStage(index)}
                 >
-                  <Minus className="w-4 h-4 text-red-500" />
+                  <Trash className="w-4 h-4 text-red-500" />
                 </Button>
               )}
 
               {/* Number of bites */}
               <div className="space-y-2">
-                <Label>Level {index + 1}: Number of Bites</Label>
+                <Label>Number of Bites</Label>
                 <Input
                   type="number"
                   min={0}

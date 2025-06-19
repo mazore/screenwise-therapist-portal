@@ -18,7 +18,7 @@ const API_URL = 'https://screenwise-backend.azurewebsites.net/';
 
 const AdjustIntervention = () => {
 
-  const { therapistData, clientData } = useClientData();
+  const { therapistData, clientData, lastSyncedNow } = useClientData();
 
   // --- Generalized Save State ---
   type SaveFields = "chewingInterval" | "operationalDefinition" | "successRating" | "disruptiveBehaviorsTracked" | "autoplayAfterLastBite" | "canUnlockProgression";
@@ -112,6 +112,7 @@ const AdjustIntervention = () => {
             [field]: value
           }
         }));
+        lastSyncedNow();
       }, 500);
     }
   };
@@ -234,6 +235,7 @@ const AdjustIntervention = () => {
             <ProgressionStagesEditor
               clientData={clientData}
               userId={userId}
+              lastSyncedNow={lastSyncedNow}
             />
 
             {/* Success Rating Slider */}
