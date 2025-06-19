@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Minus, Trash } from "lucide-react";
+import { Minus, Trash, Circle, CheckCircle } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { useMsal } from "@azure/msal-react";
 
@@ -48,6 +48,11 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
     {}
   );
 
+  /** Add this state to track the current progression UUID in the UI */
+  const [currentProgressionUuid, setCurrentProgressionUuid] = useState<string | undefined>(
+    clientData?.progressionUuid
+  );
+
   /* ---------- helpers ---------- */
 
   const getRewardTimeInput = (index: number, stage: any) => {
@@ -85,6 +90,47 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
       setRewardTimeInputs({});
     }
   }, [clientData]);
+
+  // Update currentProgressionUuid when clientData changes
+  useEffect(() => {
+    setCurrentProgressionUuid(clientData?.progressionUuid);
+  }, [clientData?.progressionUuid]);
+
+  /* ---------- stage selection ---------- */
+
+  const handleStageChange = (stageUuid: string) => {
+    if (!clientData?.name || !userId) return;
+
+    // Immediately update UI state for immediate feedback
+    setCurrentProgressionUuid(stageUuid);
+
+    // Debounce API call
+    if (progressionStageTimeoutRefs.current.progressionUuid) {
+      clearTimeout(progressionStageTimeoutRefs.current.progressionUuid);
+    }
+
+    progressionStageTimeoutRefs.current.progressionUuid = setTimeout(() => {
+      instance
+        .acquireTokenSilent({
+          scopes: ["openid", "profile"],
+          account: accounts[0],
+        })
+        .then((tokenResponse) =>
+          fetch(API_URL + "therapist_set_progression_uuid", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + tokenResponse.idToken,
+            },
+            body: JSON.stringify({
+              clientProfile: clientData.name,
+              clientUserId: userId,
+              progressionUuid: stageUuid,
+            }),
+          }).then(lastSyncedNow)
+        );
+    }, 500);
+  };
 
   /* ---------- save helpers ---------- */
 
@@ -181,16 +227,29 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
       ) : (
         editableStages.map((stage, index) => {
           const rewardTime = getRewardTimeInput(index, stage);
-          const isCurrent = clientData?.progressionUuid === stage.uuid;
+          const isCurrent = currentProgressionUuid === stage.uuid;
 
           return (
             <div
               key={stage.uuid ?? index}
-              className={`relative grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-md border transition-colors ${
+              className={`relative grid grid-cols-1 md:grid-cols-3 gap-4 p-4 pl-10 rounded-md border transition-colors ${
                 isCurrent ? "bg-blue-50 border-blue-600 shadow-md" : ""
               }`}
               style={isCurrent ? { boxShadow: "0 0 0 2px #2563eb" } : undefined}
             >
+              {/* Stage selection radio button */}
+              <div
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+                onClick={() => !isCurrent && handleStageChange(stage.uuid)}
+                title={isCurrent ? "Current stage" : "Set as current stage"}
+              >
+                {isCurrent ? (
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Circle className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
+
               {/* Title showing stage name */}
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white px-3 py-0.5 text-sm font-regular border rounded">
                 Stage {stage.name}

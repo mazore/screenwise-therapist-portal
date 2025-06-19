@@ -33,6 +33,14 @@ export const TherapyLayout = ({
     lastSyncedAt, lastSyncedNow
   } = useClientData();
 
+  const [, forceUpdate] = useState<number>(0);
+  useEffect(() => {  // incrementing a dummy state causes the component to re-render
+    const id = setInterval(() => {
+      forceUpdate(n => n + 1);
+    }, 60_000);  // every 60 seconds
+    return () => clearInterval(id);
+  }, []);
+
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const loadTherapistData = () => {
