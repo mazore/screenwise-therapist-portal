@@ -8,23 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Plus, Minus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+// Radio button
 
 import { useClientData } from "@/hooks/useClientData";
 
 import { useMsal } from "@azure/msal-react";
 import { v4 as uuidv4 } from "uuid";
 
+const API_URL = 'https://screenwise-backend.azurewebsites.net/';
 
 interface Level {
   bites: number;
@@ -58,7 +49,7 @@ const AdjustIntervention = ({
   selectedClient
 }: AdjustInterventionProps) => {
 
-  const { clientData } = useClientData();
+  const { therapistData, clientData } = useClientData();
 
   // --- Generalized Save State ---
   type SaveFields = "chewingInterval" | "operationalDefinition" | "successRating" | "disruptiveBehaviorsTracked" | "autoplayAfterLastBite" | "canUnlockProgression";
@@ -110,32 +101,6 @@ const AdjustIntervention = ({
 
   // --- Generalized Save Function ---
   const { accounts, instance } = useMsal();
-  const API_URL = 'https://screenwise-backend.azurewebsites.net/';
-  const [therapistData, setTherapistData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadTherapistData = () => {
-      instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
-        .then((tokenResponse) => {
-          return fetch(API_URL + 'get_therapist_data', {
-            method: 'POST',
-            headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
-          })
-        })
-        .then((apiResponse) => apiResponse.json())
-        .then((data) => {
-          setTherapistData(data.therapistData);
-          setLoading(false);
-        })
-        .catch((error) => {
-          instance.acquireTokenRedirect({scopes: ['openid', 'profile']});
-          console.error('There was a problem with the fetch operation:', error);
-        });
-    };
-    loadTherapistData();
-  }, [accounts, instance]);
-
   const userId = therapistData?.clients?.[clientData?.name]?.userId;
 
   // --- Generalized Save Handler ---
@@ -278,38 +243,6 @@ const AdjustIntervention = ({
     };
   }, [allowCaregiverOverride, clientData, userId, lastClientName, instance, accounts, API_URL, lastSavedValues]);
 
-  const isMobile = useIsMobile();
-  //const [successRating, setSuccessRating] = useState(7);
-  //const [chewingInterval, setChewingInterval] = useState(30);
-  const [targetBehaviorWording, setTargetBehaviorWording] = useState("Bite");
-  const [targetBehaviorPromptWording, setTargetBehaviorPromptWording] = useState("");
-  const [levels, setLevels] = useState<Level[]>([{
-    bites: 5,
-    rewardTime: "00:30",
-    sessionsToAdvance: 3
-  }, {
-    bites: 10,
-    rewardTime: "01:00",
-    sessionsToAdvance: 3
-  }, {
-    bites: 15,
-    rewardTime: "01:30",
-    sessionsToAdvance: 3
-  }, {
-    bites: 20,
-    rewardTime: "02:00",
-    sessionsToAdvance: 3
-  }, {
-    bites: 25,
-    rewardTime: "02:30",
-    sessionsToAdvance: 3
-  }]);
-  const [finalRewardTime, setFinalRewardTime] = useState(6);
-  const [weightLogFrequency, setWeightLogFrequency] = useState("Weekly");
-  const [intervalWording, setIntervalWording] = useState("Chew");
-  const [trackAcceptance, setTrackAcceptance] = useState(false);
-  const [trackSwallowing, setTrackSwallowing] = useState(false);
-
   const [disruptiveBehaviors, setDisruptiveBehaviors] = useState<DisruptiveBehavior[]>([
     { id: "choking", label: "Choking" },
     { id: "gagging", label: "Gagging" },
@@ -320,37 +253,11 @@ const AdjustIntervention = ({
     { id: "assistedFeeding", label: "Assisted feeding" },
     { id: "vomiting", label: "Vomiting" },
     { id: "packing", label: "Packing" },
+    { id: "notSittingAtTable", label: "Not sitting at the table" },
     { id: "other1", label: "Other", custom: true }
   ]);
-  
-  const [keyCircumstances, setKeyCircumstances] = useState<KeyCircumstance[]>([
-    { id: "sickness", label: "Sickness" },
-    { id: "nonRoutine", label: "Non-routine setting" },
-    { id: "newMedication", label: "New medication" },
-    { id: "notSitting", label: "Not sitting down" },
-    { id: "other1", label: "Other", custom: true }
-  ]);
-  
-  const [selectedCircumstances, setSelectedCircumstances] = useState<string[]>([]);
-  
+
   const [behaviorCustomValues, setBehaviorCustomValues] = useState<Record<string, string>>({});
-  const [circumstanceCustomValues, setCircumstanceCustomValues] = useState<Record<string, string>>({});
-
-  // Helper to format seconds as MM:SS
-  function formatSecondsToMMSS(seconds: number) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
-
-  // Helper to parse MM:SS to seconds
-  function parseMMSS(str: string): number {
-    const [mm, ss] = str.split(":");
-    const m = parseInt(mm, 10);
-    const s = parseInt(ss, 10);
-    if (isNaN(m) || isNaN(s)) return 0;
-    return m * 60 + s;
-  }
 
   // Editable progression stages state, synced to clientData
   const [editableStages, setEditableStages] = useState<any[]>(clientData?.progressionStages || []);
@@ -469,52 +376,18 @@ const AdjustIntervention = ({
     }
   };
 
-  const addLevel = () => {
-    if (levels.length < 10) {
-      const lastLevel = levels[levels.length - 1];
-      const newLevel = {
-        bites: lastLevel.bites + 5,
-        rewardTime: `0${Math.floor(lastLevel.bites / 2)}:30`,
-        sessionsToAdvance: lastLevel.sessionsToAdvance
-      };
-      setLevels([...levels, newLevel]);
-    }
-  };
-
-  const removeLevel = () => {
-    if (levels.length > 1) {
-      setLevels(levels.slice(0, -1));
-    }
-  };
-
-  const handleLevelChange = (index: number, field: keyof Level, value: string | number) => {
-    const newLevels = [...levels];
-    if (field === "rewardTime" && typeof value === "string") {
-      newLevels[index].rewardTime = value;
-    } else if (field === "bites" && typeof value === "number") {
-      newLevels[index].bites = value;
-    } else if (field === "sessionsToAdvance" && typeof value === "number") {
-      newLevels[index].sessionsToAdvance = value;
-    } else if (field === "bites" && typeof value === "string") {
-      newLevels[index].bites = parseInt(value) || 0;
-    } else if (field === "sessionsToAdvance" && typeof value === "string") {
-      newLevels[index].sessionsToAdvance = parseInt(value) || 0;
-    }
-    setLevels(newLevels);
-  };
-  
   const handleBehaviorChange = (behaviorId: string, checked: boolean) => {
     const normalizedId = behaviorId.toLowerCase();
     if (checked) {
       setSelectedBehaviors(prev =>
         prev.includes(normalizedId) ? prev : [...prev, normalizedId]
       );
-      
+
       const behavior = disruptiveBehaviors.find(b => b.id === behaviorId);
       if (behavior?.custom) {
         const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
         const nextOtherId = `other${otherNumber + 1}`;
-        
+
         if (!disruptiveBehaviors.some(b => b.id === nextOtherId)) {
           setDisruptiveBehaviors([
             ...disruptiveBehaviors,
@@ -524,23 +397,23 @@ const AdjustIntervention = ({
       }
     } else {
       setSelectedBehaviors(prev => prev.filter(id => id !== normalizedId));
-      
+
       // Clean up custom values when unchecking
       if (behaviorId.startsWith("other")) {
         // Remove the custom value for this ID
         const newCustomValues = { ...behaviorCustomValues };
         delete newCustomValues[behaviorId];
         setBehaviorCustomValues(newCustomValues);
-        
+
         // Clean up any "other" items after this one
         const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
-        
+
         // Find the highest selected "other" behavior
         const highestSelectedOther = selectedBehaviors
           .filter(id => id.startsWith("other") && id !== behaviorId)
           .map(id => parseInt(id.replace("other", "")) || 1)
           .reduce((max, num) => Math.max(max, num), 0);
-        
+
         // Keep only behaviors up to the highest selected one, plus one more for the next addition
         if (highestSelectedOther > 0) {
           setDisruptiveBehaviors(disruptiveBehaviors.filter(b => {
@@ -563,75 +436,12 @@ const AdjustIntervention = ({
       }
     }
   };
-  
-  const handleCircumstanceChange = (circumstanceId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCircumstances([...selectedCircumstances, circumstanceId]);
-      
-      const circumstance = keyCircumstances.find(c => c.id === circumstanceId);
-      if (circumstance?.custom) {
-        const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
-        const nextOtherId = `other${otherNumber + 1}`;
-        
-        if (!keyCircumstances.some(c => c.id === nextOtherId)) {
-          setKeyCircumstances([
-            ...keyCircumstances,
-            { id: nextOtherId, label: `Other ${otherNumber + 1}`, custom: true }
-          ]);
-        }
-      }
-    } else {
-      setSelectedCircumstances(selectedCircumstances.filter(id => id !== circumstanceId));
-      
-      // Clean up custom values when unchecking
-      if (circumstanceId.startsWith("other")) {
-        // Remove the custom value for this ID
-        const newCustomValues = { ...circumstanceCustomValues };
-        delete newCustomValues[circumstanceId];
-        setCircumstanceCustomValues(newCustomValues);
-        
-        // Clean up any "other" items after this one
-        const otherNumber = parseInt(circumstanceId.replace("other", "")) || 1;
-        
-        // Find the highest selected "other" circumstance
-        const highestSelectedOther = selectedCircumstances
-          .filter(id => id.startsWith("other") && id !== circumstanceId)
-          .map(id => parseInt(id.replace("other", "")) || 1)
-          .reduce((max, num) => Math.max(max, num), 0);
-        
-        // Keep only circumstances up to the highest selected one, plus one more for the next addition
-        if (highestSelectedOther > 0) {
-          setKeyCircumstances(keyCircumstances.filter(c => {
-            if (c.id.startsWith("other")) {
-              const num = parseInt(c.id.replace("other", "")) || 1;
-              return num <= highestSelectedOther + 1;
-            }
-            return true;
-          }));
-        } else {
-          // If no others are selected, just keep the first "other" option
-          setKeyCircumstances(keyCircumstances.filter(c => {
-            if (c.id.startsWith("other")) {
-              const num = parseInt(c.id.replace("other", "")) || 1;
-              return num <= 1;
-            }
-            return true;
-          }));
-        }
-      }
-    }
-  };
-  
+
   const handleCustomValueChange = (
-    id: string, 
-    value: string, 
-    isCircumstance: boolean
+    id: string,
+    value: string,
   ) => {
-    if (isCircumstance) {
-      setCircumstanceCustomValues({...circumstanceCustomValues, [id]: value});
-    } else {
-      setBehaviorCustomValues({...behaviorCustomValues, [id]: value});
-    }
+    setBehaviorCustomValues({...behaviorCustomValues, [id]: value});
   };
 
   // Add these functions inside AdjustIntervention component, before return:
@@ -656,20 +466,11 @@ const AdjustIntervention = ({
     });
   };
 
-  const removeProgressionStage = () => {
-    setEditableStages(prevStages => {
-      if (!prevStages || prevStages.length <= 6) return prevStages;
-      const updated = prevStages.slice(0, -1);
-      saveProgressionStages(updated);
-      return updated;
-    });
-  };
-
   return (
     <TherapyLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold tracking-tight">Adjust Intervention</h1>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Intervention Settings</CardTitle>
@@ -679,12 +480,12 @@ const AdjustIntervention = ({
               <Label htmlFor="operational-definition">
                 Operational Definition of Successful Meal
               </Label>
-              <Textarea 
-                id="operational-definition" 
-                value={operationalDefinition} 
-                onChange={e => setOperationalDefinition(e.target.value)} 
-                placeholder="Enter the operational definition..." 
-                className="min-h-[100px]" 
+              <Textarea
+                id="operational-definition"
+                value={operationalDefinition}
+                onChange={e => setOperationalDefinition(e.target.value)}
+                placeholder="Enter the operational definition..."
+                className="min-h-[100px]"
               />
             </div>
 
@@ -813,7 +614,7 @@ const AdjustIntervention = ({
                                   }
                                 }}
                                 onBlur={e => {
-                                  let val = e.target.value.replace(/^0+/, '') || '0';
+                                  const val = e.target.value.replace(/^0+/, '') || '0';
                                   setRewardTimeInputs(prev => ({
                                     ...prev,
                                     [index]: {
@@ -950,12 +751,12 @@ const AdjustIntervention = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Success Rating Needed to Advance ({successRating}/10)</Label>
-                <Slider 
-                  value={[successRating]} 
-                  onValueChange={value => setSuccessRating(value[0])} 
-                  min={1} 
-                  max={10} 
-                  step={1} 
+                <Slider
+                  value={[successRating]}
+                  onValueChange={value => setSuccessRating(value[0])}
+                  min={1}
+                  max={10}
+                  step={1}
                 />
               </div>
             </div>
@@ -965,7 +766,7 @@ const AdjustIntervention = ({
                 checked={allowCaregiverOverride}
                 onCheckedChange={checked => setAllowCaregiverOverride(checked === true)}
               />
-              <Label 
+              <Label
                 htmlFor="caregiver-override"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
@@ -978,7 +779,7 @@ const AdjustIntervention = ({
                 checked={enableSwallowConfirm}
                 onCheckedChange={checked => setEnableSwallowConfirm(checked === true)}
               />
-              <Label 
+              <Label
                 htmlFor="swallow-confirm"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
@@ -989,9 +790,9 @@ const AdjustIntervention = ({
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="interval">Chewing Interval (seconds)</Label>
                 <div className="flex items-center space-x-2">
-                  <Input 
-                    id="interval" 
-                    type="number" 
+                  <Input
+                    id="interval"
+                    type="number"
                     value={chewingIntervalInput}
                     onChange={e => {
                       let val = e.target.value;
@@ -1022,40 +823,10 @@ const AdjustIntervention = ({
                     min={0}
                     className="w-32"
                   />
-                  {/* <div className="flex items-center space-x-2">
-                    <Label htmlFor="interval-wording">Interval Wording:</Label>
-                    <select
-                      id="interval-wording"
-                      value={intervalWording}
-                      onChange={e => setIntervalWording(e.target.value)}
-                      className="border border-input rounded-md px-2 py-1 text-sm"
-                    >
-                      <option value="Chew">Chew</option>
-                      <option value="Swallow">Swallow</option>
-                    </select>
-                  </div> */}
                 </div>
               </div>
-              {/* <div className="space-y-2">
-                <Label htmlFor="weight-log-frequency">Weight Log Notification Frequency</Label>
-                <Select 
-                  value={weightLogFrequency} 
-                  onValueChange={setWeightLogFrequency}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Biweekly">Biweekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div> */}
             </div>
 
-          {/* <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-6 mt-6`}> */}
           <div className={`grid 'grid-cols-1' gap-6 mt-6`}>
             <Card>
               <CardHeader>
@@ -1065,24 +836,24 @@ const AdjustIntervention = ({
                 {disruptiveBehaviors.map((behavior) => (
                   <div key={behavior.id} className="space-y-2">
                     <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`behavior-${behavior.id}`} 
+                      <Checkbox
+                        id={`behavior-${behavior.id}`}
                         checked={selectedBehaviors.includes(behavior.id.toLowerCase())}
                         onCheckedChange={(checked) => handleBehaviorChange(behavior.id, checked === true)}
                       />
-                      <Label 
+                      <Label
                         htmlFor={`behavior-${behavior.id}`}
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {behavior.label}
                       </Label>
                     </div>
-                    
+
                     {behavior.custom && selectedBehaviors.includes(behavior.id) && (
-                      <Input 
+                      <Input
                         placeholder={`Specify ${behavior.label.toLowerCase()}`}
                         value={behaviorCustomValues[behavior.id] || ''}
-                        onChange={(e) => handleCustomValueChange(behavior.id, e.target.value, false)}
+                        onChange={(e) => handleCustomValueChange(behavior.id, e.target.value)}
                         className="mt-2 ml-6"
                       />
                     )}
@@ -1090,99 +861,8 @@ const AdjustIntervention = ({
                 ))}
               </CardContent>
             </Card>
-            
-            {/* <Card>
-              <CardHeader>
-                <CardTitle>Key Circumstances Tracked</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {keyCircumstances.map((circumstance) => (
-                  <div key={circumstance.id} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`circumstance-${circumstance.id}`} 
-                        checked={selectedCircumstances.includes(circumstance.id)}
-                        onCheckedChange={(checked) => handleCircumstanceChange(circumstance.id, checked === true)}
-                      />
-                      <Label 
-                        htmlFor={`circumstance-${circumstance.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {circumstance.label}
-                      </Label>
-                    </div>
-                    
-                    {circumstance.custom && selectedCircumstances.includes(circumstance.id) && (
-                      <Input 
-                        placeholder={`Specify ${circumstance.label.toLowerCase()}`}
-                        value={circumstanceCustomValues[circumstance.id] || ''}
-                        onChange={(e) => handleCustomValueChange(circumstance.id, e.target.value, true)}
-                        className="mt-2 ml-6"
-                      />
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card> */}
           </div>
 
-          {/* <Card>
-            <CardHeader>
-              <CardTitle>Additional Tracking Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="track-acceptance"
-                    checked={trackAcceptance}
-                    onCheckedChange={(checked) => setTrackAcceptance(checked === true)}
-                  />
-                  <Label 
-                    htmlFor="track-acceptance"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Track Acceptance
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="track-swallowing"
-                    checked={trackSwallowing}
-                    onCheckedChange={(checked) => setTrackSwallowing(checked === true)}
-                  />
-                  <Label 
-                    htmlFor="track-swallowing"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Track Swallowing
-                  </Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <div className="space-y-2">
-              <Label htmlFor="target-behavior">Target Behavior Wording</Label>
-              <Input 
-                id="target-behavior" 
-                value={targetBehaviorWording} 
-                onChange={e => setTargetBehaviorWording(e.target.value)} 
-                placeholder="e.g., Bite, Swallow, etc."
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="target-behavior-prompt">Target Behavior Prompt Wording</Label>
-              <Input 
-                id="target-behavior-prompt" 
-                value={targetBehaviorPromptWording} 
-                onChange={e => setTargetBehaviorPromptWording(e.target.value)} 
-                placeholder="e.g., Take a bite, Try a swallow, etc."
-              />
-            </div>
-          </div> */}
         </CardContent>
       </Card>
     </div>
