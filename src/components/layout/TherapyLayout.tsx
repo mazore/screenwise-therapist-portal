@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from 'date-fns';
-
-const API_URL = 'https://screenwise-backend.azurewebsites.net/';
+import { API_URL } from "@/lib/constants";
+import ErrorBoundary from "@/lib/errorBoundary";
 
 interface TherapyLayoutProps {
   children: React.ReactNode;
@@ -26,8 +26,20 @@ export const TherapyLayout = ({
   // Backend connection stuff
   const { accounts, instance } = useMsal();
   const navigate = useNavigate();
-  const { clientData, setClientData } = useClientData();
-  const [therapistData, setTherapistData] = useState(null);
+  const {
+    clientData, setClientData,
+    therapistData, setTherapistData,
+    selectedClient, setSelectedClient,
+    lastSyncedAt, lastSyncedNow
+  } = useClientData();
+
+  const [, forceUpdate] = useState<number>(0);
+  useEffect(() => {  // incrementing a dummy state causes the component to re-render
+    const id = setInterval(() => {
+      forceUpdate(n => n + 1);
+    }, 60_000);  // every 60 seconds
+    return () => clearInterval(id);
+  }, []);
 
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -51,13 +63,9 @@ export const TherapyLayout = ({
         });
     };
     loadTherapistData();
-  }, [accounts, instance]); // Runs on refresh
+  }, [accounts, instance, setTherapistData]); // Runs on refresh
 
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string | null>(() => {
-    return localStorage.getItem('selectedClient');
-  });
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   useEffect(() => {
     if (selectedClient && therapistData) {
       localStorage.setItem('selectedClient', selectedClient);
@@ -66,14 +74,14 @@ export const TherapyLayout = ({
         headers: {'Authorization': 'Bearer ' + accounts[0].idToken},
         body: JSON.stringify({
           clientProfile: selectedClient,
-          clientUserId: therapistData.clients[selectedClient].userId
+          clientUserId: therapistData.clients[selectedClient].userId,
         })
       })
         .then((response) => response.json())
         .then((data) => {
           // console.log("Got client data", data);
           setClientData(data);
-          setLastSyncedAt(Date.now());
+          lastSyncedNow();
         })
         .catch((error) => {
           console.error('There was a problem with the fetch operation:', error);
@@ -259,6 +267,7 @@ export const TherapyLayout = ({
             </div>
           </div>
         </header>
+        <ErrorBoundary>
         <main className="p-4 md:p-6 flex-1 overflow-y-auto">
           {loading ? <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-therapy-blue"></div>
@@ -273,6 +282,7 @@ export const TherapyLayout = ({
               </div>
             </div> : children)}
         </main>
+        </ErrorBoundary>
       </div>
     </div>;
 };
