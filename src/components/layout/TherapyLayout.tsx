@@ -15,6 +15,7 @@ import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from 'date-fns';
 import { API_URL } from "@/lib/constants";
+import ErrorBoundary from "@/lib/errorBoundary";
 
 interface TherapyLayoutProps {
   children: React.ReactNode;
@@ -258,6 +259,7 @@ export const TherapyLayout = ({
             </div>
           </div>
         </header>
+        <ErrorBoundary>
         <main className="p-4 md:p-6 flex-1 overflow-y-auto">
           {loading ? <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-therapy-blue"></div>
@@ -272,6 +274,7 @@ export const TherapyLayout = ({
               </div>
             </div> : children)}
         </main>
+        </ErrorBoundary>
       </div>
     </div>;
 };

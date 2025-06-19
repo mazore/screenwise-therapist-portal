@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useRef, useEffect } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -8,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Plus, Minus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-// Radio button
 
 import { useClientData } from "@/hooks/useClientData";
 
 import { useMsal } from "@azure/msal-react";
 import { v4 as uuidv4 } from "uuid";
+import DisruptiveBehaviorsCheckboxes from './DisruptiveBehaviorsCheckboxes';
 
 const API_URL = 'https://screenwise-backend.azurewebsites.net/';
 
@@ -23,31 +24,7 @@ interface Level {
   sessionsToAdvance: number;
 }
 
-interface DisruptiveBehavior {
-  id: string;
-  label: string;
-  custom?: boolean;
-  value?: string;
-}
-
-interface KeyCircumstance {
-  id: string;
-  label: string;
-  custom?: boolean;
-  value?: string;
-}
-
-interface AdjustInterventionProps {
-  selectedClient?: string;
-}
-
-// Utility to normalize behavior IDs to lowercase
-const normalizeBehaviorIds = (arr: string[] | undefined) =>
-  (arr || []).map(b => b.toLowerCase()).filter((v, i, a) => a.indexOf(v) === i);
-
-const AdjustIntervention = ({
-  selectedClient
-}: AdjustInterventionProps) => {
+const AdjustIntervention = () => {
 
   const { therapistData, clientData } = useClientData();
 
@@ -65,32 +42,29 @@ const AdjustIntervention = ({
 
   // Set initial values
   const [chewingInterval, setChewingInterval] = useState(clientData?.secondsToChew || 30);
-  // Add a separate state for the input field value as a string
   const [chewingIntervalInput, setChewingIntervalInput] = useState(String(clientData?.secondsToChew ?? 30));
   const [operationalDefinition, setOperationalDefinition] = useState(clientData?.operationalDefinition || "");
   const [successRating, setSuccessRating] = useState(clientData?.successRatingMinForSuccess || 0);
-  const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>(
-    normalizeBehaviorIds(clientData?.disruptiveBehaviorsTracked)
-  );
+  const [selectedBehaviors, setSelectedBehaviors] = useState<string[]>(clientData?.disruptiveBehaviorsTracked);
   const [enableSwallowConfirm, setEnableSwallowConfirm] = useState(
     clientData?.autoplayAfterLastBite === undefined ? false : !clientData.autoplayAfterLastBite
   );
   const [lastClientName, setLastClientName] = useState(clientData?.name);
   const [allowCaregiverOverride, setAllowCaregiverOverride] = useState(!!clientData?.canUnlockProgression);
 
-  // Update values when clientData changes (e.g., when a new client is selected)
+  // Update values when clientData changes
   useEffect(() => {
     setChewingInterval(clientData?.secondsToChew || 30);
     setChewingIntervalInput(String(clientData?.secondsToChew ?? 30));
     setOperationalDefinition(clientData?.operationalDefinition || "");
     setSuccessRating(clientData?.successRatingMinForSuccess || 0);
-    setSelectedBehaviors(normalizeBehaviorIds(clientData?.disruptiveBehaviorsTracked));
+    setSelectedBehaviors(clientData?.disruptiveBehaviorsTracked);
     setEnableSwallowConfirm(
       clientData?.autoplayAfterLastBite === undefined ? false : !clientData.autoplayAfterLastBite
     );
     setLastClientName(clientData?.name);
     setAllowCaregiverOverride(!!clientData?.canUnlockProgression);
-    // Clear any pending save when switching clients
+
     Object.keys(saveTimeoutRefs.current).forEach((field) => {
       if (saveTimeoutRefs.current[field as SaveFields]) {
         clearTimeout(saveTimeoutRefs.current[field as SaveFields]!);
@@ -103,7 +77,6 @@ const AdjustIntervention = ({
   const { accounts, instance } = useMsal();
   const userId = therapistData?.clients?.[clientData?.name]?.userId;
 
-  // --- Generalized Save Handler ---
   const saveClientSetting = (
     field: SaveFields,
     value: any,
@@ -116,11 +89,9 @@ const AdjustIntervention = ({
       userId &&
       clientData.name === lastClientName
     ) {
-      // Only save if value changed for this client/field
       if (lastSavedValues[clientData.name]?.[field] === value) {
         return;
       }
-      // Debounce save: wait 500ms after last change
       if (saveTimeoutRefs.current[field]) {
         clearTimeout(saveTimeoutRefs.current[field]!);
       }
@@ -243,22 +214,6 @@ const AdjustIntervention = ({
     };
   }, [allowCaregiverOverride, clientData, userId, lastClientName, instance, accounts, API_URL, lastSavedValues]);
 
-  const [disruptiveBehaviors, setDisruptiveBehaviors] = useState<DisruptiveBehavior[]>([
-    { id: "choking", label: "Choking" },
-    { id: "gagging", label: "Gagging" },
-    { id: "spitting", label: "Spitting out food" },
-    { id: "refusal", label: "Refusal to accept food" },
-    { id: "coughing", label: "Coughing" },
-    { id: "improperChewing", label: "Improper chewing" },
-    { id: "assistedFeeding", label: "Assisted feeding" },
-    { id: "vomiting", label: "Vomiting" },
-    { id: "packing", label: "Packing" },
-    { id: "notSittingAtTable", label: "Not sitting at the table" },
-    { id: "other1", label: "Other", custom: true }
-  ]);
-
-  const [behaviorCustomValues, setBehaviorCustomValues] = useState<Record<string, string>>({});
-
   // Editable progression stages state, synced to clientData
   const [editableStages, setEditableStages] = useState<any[]>(clientData?.progressionStages || []);
   const [lastStagesClient, setLastStagesClient] = useState(clientData?.name);
@@ -376,74 +331,6 @@ const AdjustIntervention = ({
     }
   };
 
-  const handleBehaviorChange = (behaviorId: string, checked: boolean) => {
-    const normalizedId = behaviorId.toLowerCase();
-    if (checked) {
-      setSelectedBehaviors(prev =>
-        prev.includes(normalizedId) ? prev : [...prev, normalizedId]
-      );
-
-      const behavior = disruptiveBehaviors.find(b => b.id === behaviorId);
-      if (behavior?.custom) {
-        const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
-        const nextOtherId = `other${otherNumber + 1}`;
-
-        if (!disruptiveBehaviors.some(b => b.id === nextOtherId)) {
-          setDisruptiveBehaviors([
-            ...disruptiveBehaviors,
-            { id: nextOtherId, label: `Other ${otherNumber + 1}`, custom: true }
-          ]);
-        }
-      }
-    } else {
-      setSelectedBehaviors(prev => prev.filter(id => id !== normalizedId));
-
-      // Clean up custom values when unchecking
-      if (behaviorId.startsWith("other")) {
-        // Remove the custom value for this ID
-        const newCustomValues = { ...behaviorCustomValues };
-        delete newCustomValues[behaviorId];
-        setBehaviorCustomValues(newCustomValues);
-
-        // Clean up any "other" items after this one
-        const otherNumber = parseInt(behaviorId.replace("other", "")) || 1;
-
-        // Find the highest selected "other" behavior
-        const highestSelectedOther = selectedBehaviors
-          .filter(id => id.startsWith("other") && id !== behaviorId)
-          .map(id => parseInt(id.replace("other", "")) || 1)
-          .reduce((max, num) => Math.max(max, num), 0);
-
-        // Keep only behaviors up to the highest selected one, plus one more for the next addition
-        if (highestSelectedOther > 0) {
-          setDisruptiveBehaviors(disruptiveBehaviors.filter(b => {
-            if (b.id.startsWith("other")) {
-              const num = parseInt(b.id.replace("other", "")) || 1;
-              return num <= highestSelectedOther + 1;
-            }
-            return true;
-          }));
-        } else {
-          // If no others are selected, just keep the first "other" option
-          setDisruptiveBehaviors(disruptiveBehaviors.filter(b => {
-            if (b.id.startsWith("other")) {
-              const num = parseInt(b.id.replace("other", "")) || 1;
-              return num <= 1;
-            }
-            return true;
-          }));
-        }
-      }
-    }
-  };
-
-  const handleCustomValueChange = (
-    id: string,
-    value: string,
-  ) => {
-    setBehaviorCustomValues({...behaviorCustomValues, [id]: value});
-  };
-
   // Add these functions inside AdjustIntervention component, before return:
   const addProgressionStage = () => {
     setEditableStages(prevStages => {
@@ -476,6 +363,7 @@ const AdjustIntervention = ({
             <CardTitle>Intervention Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Operational Definition */}
             <div className="space-y-2">
               <Label htmlFor="operational-definition">
                 Operational Definition of Successful Meal
@@ -489,6 +377,7 @@ const AdjustIntervention = ({
               />
             </div>
 
+            {/* Progression Levels */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Progression Levels</h3>
@@ -748,6 +637,8 @@ const AdjustIntervention = ({
                 </Button>
               </div>
             </div>
+
+            {/* Success Rating Slider */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label>Success Rating Needed to Advance ({successRating}/10)</Label>
@@ -760,6 +651,8 @@ const AdjustIntervention = ({
                 />
               </div>
             </div>
+
+            {/* Booleans */}
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="caregiver-override"
@@ -786,6 +679,8 @@ const AdjustIntervention = ({
                 Enable ‘Swallow & Mouth Clear’ confirmation after each bite
               </Label>
             </div>
+
+            {/* Chewing Interval */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="interval">Chewing Interval (seconds)</Label>
@@ -796,19 +691,16 @@ const AdjustIntervention = ({
                     value={chewingIntervalInput}
                     onChange={e => {
                       let val = e.target.value;
-                      // Remove leading zeros (but allow empty string)
                       if (val.length > 1) {
                         val = val.replace(/^0+/, '') || '0';
                       }
                       setChewingIntervalInput(val);
-                      // Only update state if not empty and is a valid number
                       if (val !== "" && !isNaN(Number(val))) {
                         setChewingInterval(Number(val));
                       }
                     }}
                     onBlur={e => {
                       let val = e.target.value;
-                      // Remove leading zeros on blur
                       if (val.length > 1) {
                         val = val.replace(/^0+/, '') || '0';
                       }
@@ -827,46 +719,17 @@ const AdjustIntervention = ({
               </div>
             </div>
 
-          <div className={`grid 'grid-cols-1' gap-6 mt-6`}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Disruptive Behaviors Tracked</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {disruptiveBehaviors.map((behavior) => (
-                  <div key={behavior.id} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`behavior-${behavior.id}`}
-                        checked={selectedBehaviors.includes(behavior.id.toLowerCase())}
-                        onCheckedChange={(checked) => handleBehaviorChange(behavior.id, checked === true)}
-                      />
-                      <Label
-                        htmlFor={`behavior-${behavior.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {behavior.label}
-                      </Label>
-                    </div>
-
-                    {behavior.custom && selectedBehaviors.includes(behavior.id) && (
-                      <Input
-                        placeholder={`Specify ${behavior.label.toLowerCase()}`}
-                        value={behaviorCustomValues[behavior.id] || ''}
-                        onChange={(e) => handleCustomValueChange(behavior.id, e.target.value)}
-                        className="mt-2 ml-6"
-                      />
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-        </CardContent>
-      </Card>
-    </div>
-  </TherapyLayout>
+            {/* Disruptive Behaviors */}
+            <div className="grid grid-cols-1 gap-6 mt-6">
+              <DisruptiveBehaviorsCheckboxes
+                selectedBehaviors={selectedBehaviors}
+                setSelectedBehaviors={setSelectedBehaviors}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </TherapyLayout>
   );
 };
 
