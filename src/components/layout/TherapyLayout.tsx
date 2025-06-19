@@ -103,50 +103,60 @@ export const TherapyLayout = ({
     title: "Logs Activity",
     icon: Home,
     href: "/logs"
-  }, {
-    title: "Charts and Graphs",
-    icon: BarChart3,
-    href: "/charts"
-  }, {
-    title: "Set Goals",
-    icon: Target,
-    href: "/goals"
   },
-  // Existing
+  // {
+  //   title: "Charts and Graphs",
+  //   icon: BarChart3,
+  //   href: "/charts"
+  // },
+  // {
+  //   title: "Set Goals",
+  //   icon: Target,
+  //   href: "/goals"
+  // },
   {
     title: "Adjust Intervention",
     icon: RefreshCw,
     href: "/interventions"
-  }, {
-    title: "Calendar",
-    icon: Calendar,
-    href: "/calendar"
-  }, {
-    title: "Notes",
-    icon: StickyNote,
-    href: "/notes"
-  }, {
-    title: "Manage Team",
-    icon: Users,
-    href: "/team"
-  }, {
-    title: "Client Profile",
-    icon: UserRound,
-    href: "/client-profile"
-  }];
-  const generalSettings = [{
-    title: "Therapist Profile",
-    icon: User,
-    href: "/therapist-profile"
-  }, {
+  },
+  // {
+  //   title: "Calendar",
+  //   icon: Calendar,
+  //   href: "/calendar"
+  // },
+  // {
+  //   title: "Notes",
+  //   icon: StickyNote,
+  //   href: "/notes"
+  // },
+  // {
+  //   title: "Manage Team",
+  //   icon: Users,
+  //   href: "/team"
+  // },
+  // {
+  //   title: "Client Profile",
+  //   icon: UserRound,
+  //   href: "/client-profile"
+  // }
+  ];
+  const generalSettings = [
+  //   {
+  //   title: "Therapist Profile",
+  //   icon: User,
+  //   href: "/therapist-profile"
+  // },
+  {
     title: "Manage Clients",
     icon: Users,
     href: "/clients"
-  }, {
-    title: "Clinic Settings",
-    icon: Building,
-    href: "/clinic-settings"
-  }];
+  },
+  // {
+  //   title: "Clinic Settings",
+  //   icon: Building,
+  //   href: "/clinic-settings"
+  // }
+  ];
   const isCurrentPath = (path: string) => window.location.pathname === path;
   const isClientSpecificPage = () => {
     const clientSpecificRoutes = ['/logs', '/charts', '/goals', '/interventions', '/team', '/client-profile'];
@@ -167,14 +177,14 @@ export const TherapyLayout = ({
 
         <div className="flex-1 overflow-y-auto py-4">
           <div className="space-y-4">
-            <div className="px-3">
+            {/* <div className="px-3">
               <Link to="/dashboard">
                 <Button variant="ghost" className={cn("w-full justify-start", isCurrentPath("/dashboard") && "bg-muted font-medium")}>
                   <Home className={cn("h-5 w-5", collapsed && "mx-auto", isCurrentPath("/dashboard") && "text-primary")} />
                   {!collapsed && <span className="ml-2">Home Dashboard</span>}
                 </Button>
               </Link>
-            </div>
+            </div> */}
 
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">Client Tools</h3>}
