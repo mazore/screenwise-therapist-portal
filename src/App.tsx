@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Charts from "./pages/Charts";
 import NotFound from "./pages/NotFound";
 import AdjustIntervention from "./pages/AdjustIntervention";
+import Clients from "./pages/Clients";
 import Dashboard from "./pages/Dashboard";
 import LogsActivity from "./pages/LogsActivity";
 import SessionLogs from "./pages/SessionLogs";
@@ -13,6 +14,7 @@ import Calendar from "./pages/Calendar";
 import Notes from "./pages/Notes";
 import Goals from "./pages/Goals";
 import ManageTeam from "./pages/ManageTeam";
+import DeepLinkFallback from "./pages/DeepLinkFallback";
 
 import { PublicClientApplication } from "@azure/msal-browser";
 import Login from "./pages/Login";
@@ -48,8 +50,9 @@ const MainApp = () => {
             <Route path="/team" element={<ManageTeam />} />
             <Route path="/client-profile" element={<NotFound />} />
             <Route path="/therapist-profile" element={<NotFound />} />
-            <Route path="/clients" element={<NotFound />} />
+            <Route path="/clients" element={<Clients />} />
             <Route path="/clinic-settings" element={<NotFound />} />
+            <Route path="/deep-link" element={<DeepLinkFallback />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
