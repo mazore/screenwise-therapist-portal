@@ -8,12 +8,16 @@ import { LogLevel, Configuration } from "@azure/msal-browser";
 // redirectUri: window.location.origin,
 // postLogoutRedirectUri: window.location.origin + "/login",
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 export const msalConfig: Configuration = {
   auth: {
     clientId: "f2a126c8-6201-45a3-a015-0179166e72ab", // e.g. 12345678-aaaa-bbbb-cccc-1234567890ab
     authority: "https://login.screenwiseeating.com/screenwiseeating.onmicrosoft.com/B2C_1_screenwise-therapist-sign-up-sign-in",
     knownAuthorities: ["login.screenwiseeating.com"],
-    redirectUri: "http://localhost:8080/",
+    redirectUri: isDevelopment
+      ? "http://localhost:8080/"
+      : "https://app.screenwiseeating.com",
     navigateToLoginRequestUrl: false
   },
   cache: {

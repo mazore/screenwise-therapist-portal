@@ -32,35 +32,40 @@ const MainApp = () => {
   console.log("isAuthenticated", isAuthenticated);
 
   return <QueryClientProvider client={queryClient}>
-    <AuthenticatedTemplate>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/logs" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/logs" element={<SessionLogs />} />
-            <Route path="/logs-activity" element={<LogsActivity />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/interventions" element={<AdjustIntervention />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/notes" element={<Notes />} />
-            <Route path="/goals" element={<Goals />} />
-            <Route path="/team" element={<ManageTeam />} />
-            <Route path="/client-profile" element={<NotFound />} />
-            <Route path="/therapist-profile" element={<NotFound />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/clinic-settings" element={<NotFound />} />
-            <Route path="/deep-link" element={<DeepLinkFallback />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthenticatedTemplate>
-    <UnauthenticatedTemplate>
-      <Login />
-    </UnauthenticatedTemplate>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          {/* Deep link route accessible for both authenticated and unauthenticated users */}
+          <Route path="/deep-link" element={<DeepLinkFallback />} />
+
+          {/* Routes that require authentication */}
+          {isAuthenticated ? (
+            <>
+              <Route path="/" element={<Navigate to="/logs" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/logs" element={<SessionLogs />} />
+              <Route path="/logs-activity" element={<LogsActivity />} />
+              <Route path="/charts" element={<Charts />} />
+              <Route path="/interventions" element={<AdjustIntervention />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/notes" element={<Notes />} />
+              <Route path="/goals" element={<Goals />} />
+              <Route path="/team" element={<ManageTeam />} />
+              <Route path="/client-profile" element={<NotFound />} />
+              <Route path="/therapist-profile" element={<NotFound />} />
+              <Route path="/clients" element={<Clients />} />
+              <Route path="/clinic-settings" element={<NotFound />} />
+              <Route path="*" element={<NotFound />} />
+            </>
+          ) : (
+            // Redirect to login for all other routes when not authenticated
+            <Route path="*" element={<Login />} />
+          )}
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 }
 

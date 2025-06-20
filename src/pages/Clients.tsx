@@ -19,7 +19,8 @@ export default function Clients() {
     return null;
   }
 
-  const url = "com.screenwiseeating.yumeats://link_to_therapist/?therapist_id=" + therapistData?.userId;
+  // const url = "com.screenwiseeating.yumeats://link_to_therapist/?therapist_id=" + therapistData?.userId;
+  const url = "https://app.screenwiseeating.com/deep-link?therapist_id=" + therapistData?.userId;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(url);

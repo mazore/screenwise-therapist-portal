@@ -6,11 +6,11 @@ import { ArrowDownToLine } from "lucide-react";
 
 const DeepLinkFallback = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
+  const therapist_id = searchParams.get("therapist_id");
 
   useEffect(() => {
     // Attempt to open the app via deep link
-    const deepLinkUrl = `com.screenwiseeating.yumeats://link_to_therapist?token=${token}`;
+    const deepLinkUrl = `com.screenwiseeating.yumeats://link_to_therapist?therapist_id=${therapist_id}`;
     const timer = setTimeout(() => {
       // Fallback if the app doesn't open
       console.log("App not installed or deep link failed.");
@@ -19,7 +19,7 @@ const DeepLinkFallback = () => {
     window.location.href = deepLinkUrl;
 
     return () => clearTimeout(timer);
-  }, [token]);
+  }, [therapist_id]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
