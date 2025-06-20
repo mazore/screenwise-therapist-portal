@@ -17,7 +17,7 @@ export const msalConfig: Configuration = {
     knownAuthorities: ["login.screenwiseeating.com"],
     redirectUri: isDevelopment
       ? "http://localhost:8080/"
-      : "https://app.screenwiseeating.com",
+      : "https://app.screenwiseeating.com/",
     navigateToLoginRequestUrl: false
   },
   cache: {
