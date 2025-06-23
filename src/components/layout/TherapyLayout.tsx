@@ -67,7 +67,7 @@ export const TherapyLayout = ({
 
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    if (selectedClient && therapistData) {
+    if (selectedClient && therapistData && therapistData.clients[selectedClient]) {
       console.log('debug1', selectedClient, therapistData);
       localStorage.setItem('selectedClient', selectedClient);
       fetch(API_URL + 'get_therapist_client', {
