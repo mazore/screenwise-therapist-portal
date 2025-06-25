@@ -37,9 +37,28 @@ export default function Clients() {
     <div className="max-w-3xl mx-auto py-4 px-4">
       <div className="bg-white rounded-lg shadow-md p-8 mb-8">
         <h2 className="text-xl font-semibold mb-4">Connect with your clients</h2>
-        <p className="text-gray-600 mb-6">
-          Share this QR code or link with your clients to connect them to your account.
-        </p>
+
+        <div className="mb-6">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mr-3">
+              1
+            </div>
+            <p className="text-gray-600 pt-1">
+              Have your clients download the "YumEats" App from the App Store
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center mr-3">
+              2
+            </div>
+            <p className="text-gray-600 pt-1">
+              Share this QR code or link with your clients to connect them to your account.
+            </p>
+          </div>
+        </div>
 
         <div className="flex flex-col items-center mb-8">
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">

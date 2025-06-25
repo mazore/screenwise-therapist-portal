@@ -26,8 +26,11 @@ const DeepLinkFallback = () => {
       <Card className="max-w-md w-full text-center shadow-xl">
         <CardContent className="p-6">
           <h1 className="text-2xl font-bold mb-4">Opening App...</h1>
-          <p className="mb-6 text-gray-600">
+          <p className="mb-2 text-gray-600">
             If the app doesn't open automatically, you may need to install it first.
+          </p>
+          <p className="mb-6 text-gray-600">
+            Once installed and setup, go back to the QR code or link shared by your therapist.
           </p>
           <Button
             variant="default"
