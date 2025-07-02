@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { MealDurationChart } from "@/components/dashboard/MealDurationChart";
@@ -7,6 +6,9 @@ import { BodyweightChart } from "@/components/dashboard/BodyweightChart";
 import { BitesPerMealChart } from "@/components/dashboard/BitesPerMealChart";
 import { Button } from "@/components/ui/button";
 import { GraphManagerDialog, type Graph } from "@/components/charts/GraphManagerDialog";
+
+import { VolumePerMealChart } from "@/components/dashboard/VolumePerMealChart";
+import { VolumePerBiteChart } from "@/components/dashboard/VolumePerBiteChart";
 
 const initialGraphs: Graph[] = [
   { id: "meal-duration", name: "Meal Duration", visible: true },
@@ -27,6 +29,8 @@ const Charts = () => {
     "bites-per-meal": "6W",
     "bodyweight": "6W",
     "disruptive-behaviors": "6W",
+    "volume-per-meal": "6W",
+    "volume-per-bite": "6W"
   });
 
   const handleTimeframeChange = (graphId: string, value: string) => {
@@ -56,6 +60,10 @@ const Charts = () => {
                 return <BodyweightChart key={graph.id} timeframe={timeframe} onTimeframeChange={(value) => handleTimeframeChange(graph.id, value)} />;
               case "disruptive-behaviors":
                 return <DisruptiveBehaviorChart key={graph.id} timeframe={timeframe} onTimeframeChange={(value) => handleTimeframeChange(graph.id, value)} />;
+              case "volume-consumed-per-meal":
+                return <VolumePerMealChart key={graph.id} timeframe={timeframe} onTimeframeChange={(value) => handleTimeframeChange(graph.id, value)} />;
+              case "volume-consumed-per-bite":
+                return <VolumePerBiteChart key={graph.id} timeframe={timeframe} onTimeframeChange={(value) => handleTimeframeChange(graph.id, value)} />;
               default:
                 return null;
             }
