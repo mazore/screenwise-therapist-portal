@@ -85,3 +85,45 @@ export default function computeStats(statName, getAttribute, mealType, timeMode,
 
     return data;
 }
+
+export function computeWeightStats(timeMode, weightMeasurements) {
+    // Defensive: empty array if no data
+    if (!weightMeasurements || weightMeasurements.length === 0) return [];
+
+    const { resolution, amount, getLabel } = timeMode;
+
+    // Build time buckets
+    let data = [];
+    if (resolution == 'month') {
+        data = getPastTimeUnits(amount, 'months', 'month', (start) => start.format('MMM YYYY'))
+            .map(month => ({ ...month, sum: 0, count: 0 }));
+    } else if (resolution == 'week') {
+        data = getPastWeeks(amount, getLabel).map((week) => ({
+            ...week,
+            sum: 0,
+            count: 0,
+            rangeLabel: `${moment(week.startTime * 1000).format("MMM D")} – ${moment(week.endTime * 1000).format("MMM D")}`,
+        }));
+    } else if (resolution == 'day') {
+        data = getPastDays(amount, getLabel).map((day) => ({ ...day, sum: 0, count: 0 }));
+    }
+
+    // Assign measurements to buckets
+    for (const entry of weightMeasurements) {
+        const time = entry.timeRecorded / 1000; // ms to s
+        for (let i = data.length - 1; i >= 0; i--) {
+            if (time >= data[i].startTime && time <= data[i].endTime) {
+                data[i].sum += entry.weight;
+                data[i].count++;
+                break;
+            }
+        }
+    }
+
+    // Average for each bucket
+    for (let i = 0; i < data.length; i++) {
+        data[i].y = data[i].count ? Math.round((data[i].sum / data[i].count) * 10) / 10 : null;
+    }
+
+    return data;
+}
