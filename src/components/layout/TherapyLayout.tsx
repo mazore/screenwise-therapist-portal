@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import { useMsal } from "@azure/msal-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from 'date-fns';
-
-const API_URL = 'https://screenwise-backend.azurewebsites.net/';
+import { API_URL } from "@/lib/constants";
+import ErrorBoundary from "@/lib/errorBoundary";
 
 interface TherapyLayoutProps {
   children: React.ReactNode;
@@ -26,8 +26,20 @@ export const TherapyLayout = ({
   // Backend connection stuff
   const { accounts, instance } = useMsal();
   const navigate = useNavigate();
-  const { clientData, setClientData } = useClientData();
-  const [therapistData, setTherapistData] = useState(null);
+  const {
+    clientData, setClientData,
+    therapistData, setTherapistData,
+    selectedClient, setSelectedClient,
+    lastSyncedAt, lastSyncedNow
+  } = useClientData();
+
+  const [, forceUpdate] = useState<number>(0);
+  useEffect(() => {  // incrementing a dummy state causes the component to re-render
+    const id = setInterval(() => {
+      forceUpdate(n => n + 1);
+    }, 60_000);  // every 60 seconds
+    return () => clearInterval(id);
+  }, []);
 
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -51,29 +63,26 @@ export const TherapyLayout = ({
         });
     };
     loadTherapistData();
-  }, [accounts, instance]); // Runs on refresh
+  }, [accounts, instance, setTherapistData]); // Runs on refresh
 
   const [collapsed, setCollapsed] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string | null>(() => {
-    return localStorage.getItem('selectedClient');
-  });
-  const [lastSyncedAt, setLastSyncedAt] = useState(null);
   useEffect(() => {
-    if (selectedClient && therapistData) {
+    if (selectedClient && therapistData && therapistData.clients[selectedClient]) {
+      console.log('debug1', selectedClient, therapistData);
       localStorage.setItem('selectedClient', selectedClient);
       fetch(API_URL + 'get_therapist_client', {
         method: 'POST',
         headers: {'Authorization': 'Bearer ' + accounts[0].idToken},
         body: JSON.stringify({
           clientProfile: selectedClient,
-          clientUserId: therapistData.clients[selectedClient].userId
+          clientUserId: therapistData.clients[selectedClient].userId,
         })
       })
         .then((response) => response.json())
         .then((data) => {
           // console.log("Got client data", data);
           setClientData(data);
-          setLastSyncedAt(Date.now());
+          lastSyncedNow();
         })
         .catch((error) => {
           console.error('There was a problem with the fetch operation:', error);
@@ -95,50 +104,60 @@ export const TherapyLayout = ({
     title: "Logs Activity",
     icon: Home,
     href: "/logs"
-  }, {
-    title: "Charts and Graphs",
-    icon: BarChart3,
-    href: "/charts"
-  }, {
-    title: "Set Goals",
-    icon: Target,
-    href: "/goals"
   },
-  // Existing
+  // {
+  //   title: "Charts and Graphs",
+  //   icon: BarChart3,
+  //   href: "/charts"
+  // },
+  // {
+  //   title: "Set Goals",
+  //   icon: Target,
+  //   href: "/goals"
+  // },
   {
     title: "Adjust Intervention",
     icon: RefreshCw,
     href: "/interventions"
-  }, {
-    title: "Calendar",
-    icon: Calendar,
-    href: "/calendar"
-  }, {
-    title: "Notes",
-    icon: StickyNote,
-    href: "/notes"
-  }, {
-    title: "Manage Team",
-    icon: Users,
-    href: "/team"
-  }, {
-    title: "Client Profile",
-    icon: UserRound,
-    href: "/client-profile"
-  }];
-  const generalSettings = [{
-    title: "Therapist Profile",
-    icon: User,
-    href: "/therapist-profile"
-  }, {
+  },
+  // {
+  //   title: "Calendar",
+  //   icon: Calendar,
+  //   href: "/calendar"
+  // },
+  // {
+  //   title: "Notes",
+  //   icon: StickyNote,
+  //   href: "/notes"
+  // },
+  // {
+  //   title: "Manage Team",
+  //   icon: Users,
+  //   href: "/team"
+  // },
+  // {
+  //   title: "Client Profile",
+  //   icon: UserRound,
+  //   href: "/client-profile"
+  // }
+  ];
+  const generalSettings = [
+  //   {
+  //   title: "Therapist Profile",
+  //   icon: User,
+  //   href: "/therapist-profile"
+  // },
+  {
     title: "Manage Clients",
     icon: Users,
     href: "/clients"
-  }, {
-    title: "Clinic Settings",
-    icon: Building,
-    href: "/clinic-settings"
-  }];
+  },
+  // {
+  //   title: "Clinic Settings",
+  //   icon: Building,
+  //   href: "/clinic-settings"
+  // }
+  ];
   const isCurrentPath = (path: string) => window.location.pathname === path;
   const isClientSpecificPage = () => {
     const clientSpecificRoutes = ['/logs', '/charts', '/goals', '/interventions', '/team', '/client-profile'];
@@ -159,14 +178,14 @@ export const TherapyLayout = ({
 
         <div className="flex-1 overflow-y-auto py-4">
           <div className="space-y-4">
-            <div className="px-3">
+            {/* <div className="px-3">
               <Link to="/dashboard">
                 <Button variant="ghost" className={cn("w-full justify-start", isCurrentPath("/dashboard") && "bg-muted font-medium")}>
                   <Home className={cn("h-5 w-5", collapsed && "mx-auto", isCurrentPath("/dashboard") && "text-primary")} />
                   {!collapsed && <span className="ml-2">Home Dashboard</span>}
                 </Button>
               </Link>
-            </div>
+            </div> */}
 
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">Client Tools</h3>}
@@ -259,6 +278,7 @@ export const TherapyLayout = ({
             </div>
           </div>
         </header>
+        <ErrorBoundary>
         <main className="p-4 md:p-6 flex-1 overflow-y-auto">
           {loading ? <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-therapy-blue"></div>
@@ -273,6 +293,7 @@ export const TherapyLayout = ({
               </div>
             </div> : children)}
         </main>
+        </ErrorBoundary>
       </div>
     </div>;
 };
