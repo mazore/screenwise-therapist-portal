@@ -53,33 +53,41 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
       });
     }
 
-    // Collect all possible disruptive behavior keys
+    // Collect all possible disruptive behavior keys (preserve order of first appearance)
+    const allBehaviorArr: string[] = [];
     const allBehaviorSet = new Set<string>();
-    // Prepare chart data: one object per bucket, each with an average for each behavior
+
+    // Prepare chart data: one object per bucket, each with average rating per rating for each behavior
     const bucketData = buckets.map((bucket) => {
-      const behaviors: Record<string, number[]> = {};
+      const behaviors: Record<string, number[]> = {}; // collect all ratings for each behavior
       for (const meal of mealHistory) {
         const mealTime = meal.mealStartTime ? meal.mealStartTime / 1000 : null;
         if (
           mealTime &&
           mealTime >= bucket.startTime &&
-          mealTime <= bucket.endTime &&
-          meal.disruptiveBehaviorRatings &&
-          typeof meal.disruptiveBehaviorRatings === "object"
+          mealTime <= bucket.endTime
         ) {
-          Object.entries(meal.disruptiveBehaviorRatings).forEach(([behavior, rating]) => {
-            if (typeof rating === "number" && rating > 0) {
-              allBehaviorSet.add(behavior);
-              if (!behaviors[behavior]) behaviors[behavior] = [];
-              behaviors[behavior].push(rating);
-            }
-          });
+          if (
+            meal.disruptiveBehaviorRatings &&
+            typeof meal.disruptiveBehaviorRatings === "object"
+          ) {
+            Object.entries(meal.disruptiveBehaviorRatings).forEach(([behavior, rating]) => {
+              if (typeof rating === "number" && rating > 0) {
+                if (!allBehaviorSet.has(behavior)) {
+                  allBehaviorSet.add(behavior);
+                  allBehaviorArr.push(behavior);
+                }
+                if (!behaviors[behavior]) behaviors[behavior] = [];
+                behaviors[behavior].push(rating);
+              }
+            });
+          }
         }
       }
-      // For each behavior, average all ratings for this bucket (max 10)
+      // For each behavior, divide sum by number of ratings (average per rating, rounded to one decimal)
       const behaviorAverages: Record<string, number> = {};
       Object.entries(behaviors).forEach(([behavior, arr]) => {
-        const avg = arr.length ? Math.min(10, Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10) : 0;
+        const avg = arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : 0;
         behaviorAverages[behavior] = avg;
       });
       return {
@@ -92,7 +100,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
     });
 
     setChartData(bucketData);
-    setBehaviorKeys(Array.from(allBehaviorSet));
+    setBehaviorKeys(allBehaviorArr);
   }, [timeframe, mealHistory]);
 
   return (
@@ -100,7 +108,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle>Disruptive Behaviors per Meal</CardTitle>
-          <CardDescription>Number of incidents during meals</CardDescription>
+          <CardDescription>Average severity of behaviors during meals</CardDescription>
         </div>
         <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
       </CardHeader>
@@ -129,6 +137,8 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
           <BarChart
             data={chartData}
             margin={{ left: 10, right: 10 }}
+            barCategoryGap="10%" // keep group width consistent
+            barGap={2}
           >
             <XAxis
               dataKey="date"
@@ -138,24 +148,50 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
                 if (timeframe === "30D") {
                   return index % 5 === 0 ? label : "";
                 }
+                if (timeframe === "10D") {
+                  // Format as M/D (e.g., 6/25)
+                  const match = label.match(/([A-Za-z]+) (\d+)/);
+                  if (match) {
+                    const month = new Date(`${match[1]} 1`).getMonth() + 1;
+                    const day = match[2];
+                    return `${month}/${day}`;
+                  }
+                  return label;
+                }
                 if (timeframe === "6M" || timeframe === "12M") {
                   return label.split(" ")[0];
                 }
                 return label;
               }}
             />
-            <YAxis allowDecimals={false} />
+            <YAxis
+              allowDecimals={false}
+              domain={[0, 10]}
+              ticks={[0, 2, 4, 6, 8, 10]}
+            />
             <Tooltip content={<CustomTooltip behaviorKeys={behaviorKeys} timeframe={timeframe} />} />
-            {behaviorKeys.map((behavior, idx) => (
-              <Bar
-                key={behavior}
-                dataKey={behavior}
-                stackId="a"
-                fill={barColor(idx)}
-                name={behavior}
-                maxBarSize={40}
-              />
-            ))}
+            {(() => {
+              // Find the max number of behaviors tracked in any time unit (bucket)
+              let maxBehaviors = 1;
+              chartData.forEach((bucket) => {
+                const count = behaviorKeys.filter((key) => bucket[key] !== undefined && bucket[key] !== 0).length;
+                if (count > maxBehaviors) maxBehaviors = count;
+              });
+              // Calculate bar width so that all bars in a group fill the same space
+              // (e.g., 60px for the group, divided by maxBehaviors)
+              const groupWidth = 60;
+              const barWidth = Math.max(6, Math.floor(groupWidth / maxBehaviors));
+              return behaviorKeys.map((behavior, idx) => (
+                <Bar
+                  key={behavior}
+                  dataKey={behavior}
+                  /* Remove stackId to make bars side-by-side instead of stacked */
+                  fill={barColor(idx)}
+                  name={behavior}
+                  barSize={barWidth}
+                />
+              ));
+            })()}
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
@@ -220,3 +256,4 @@ const CustomTooltip = ({ active, payload, label, timeframe, behaviorKeys }: any)
     </div>
   );
 };
+

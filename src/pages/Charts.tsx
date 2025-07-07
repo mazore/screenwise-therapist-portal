@@ -17,8 +17,8 @@ const initialGraphs: Graph[] = [
   { id: "volume-consumed-per-bite", name: "Volume Consumed Per Bite", visible: false },
   { id: "bodyweight", name: "Bodyweight", visible: true },
   { id: "disruptive-behaviors", name: "Avg. Disruptive Behaviors Per Meal", visible: true },
-  { id: "acceptance-percentage", name: "Avg. Acceptance % Per Meal", visible: false },
-  { id: "swallowing-percentage", name: "Avg. Swallowing % Per Meal", visible: false },
+  // { id: "acceptance-percentage", name: "Avg. Acceptance % Per Meal", visible: false },
+  // { id: "swallowing-percentage", name: "Avg. Swallowing % Per Meal", visible: false },
 ];
 
 const Charts = () => {
