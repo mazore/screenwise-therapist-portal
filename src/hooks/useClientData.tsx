@@ -44,3 +44,8 @@ export const useClientData = (): ClientDataContextValue => {
   if (!ctx) throw new Error("useClientData must be used within ClientDataProvider");
   return ctx;
 };
+
+export const useTherapistData = () => {
+  const { therapistData } = useClientData();
+  return therapistData;
+};

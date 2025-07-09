@@ -178,14 +178,14 @@ export const TherapyLayout = ({
 
         <div className="flex-1 overflow-y-auto py-4">
           <div className="space-y-4">
-            {/* <div className="px-3">
+            <div className="px-3">
               <Link to="/dashboard">
                 <Button variant="ghost" className={cn("w-full justify-start", isCurrentPath("/dashboard") && "bg-muted font-medium")}>
                   <Home className={cn("h-5 w-5", collapsed && "mx-auto", isCurrentPath("/dashboard") && "text-primary")} />
                   {!collapsed && <span className="ml-2">Home Dashboard</span>}
                 </Button>
               </Link>
-            </div> */}
+            </div>
 
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">Client Tools</h3>}
