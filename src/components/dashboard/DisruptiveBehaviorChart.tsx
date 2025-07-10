@@ -57,9 +57,12 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
     const allBehaviorArr: string[] = [];
     const allBehaviorSet = new Set<string>();
 
-    // Prepare chart data: one object per bucket, each with average rating per rating for each behavior
+    // Prepare chart data: one object per bucket, each with average rating per behavior across all meals
     const bucketData = buckets.map((bucket) => {
-      const behaviors: Record<string, number[]> = {}; // collect all ratings for each behavior
+      const behaviorSums: Record<string, number> = {}; // sum of ratings per behavior
+      const behaviorCounts: Record<string, number> = {}; // count of meals with ratings per behavior
+      let totalMeals = 0; // count of all meals in the timeframe
+
       for (const meal of mealHistory) {
         const mealTime = meal.mealStartTime ? meal.mealStartTime / 1000 : null;
         if (
@@ -67,6 +70,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
           mealTime >= bucket.startTime &&
           mealTime <= bucket.endTime
         ) {
+          totalMeals++;
           if (
             meal.disruptiveBehaviorRatings &&
             typeof meal.disruptiveBehaviorRatings === "object"
@@ -77,19 +81,23 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
                   allBehaviorSet.add(behavior);
                   allBehaviorArr.push(behavior);
                 }
-                if (!behaviors[behavior]) behaviors[behavior] = [];
-                behaviors[behavior].push(rating);
+                if (!behaviorSums[behavior]) behaviorSums[behavior] = 0;
+                if (!behaviorCounts[behavior]) behaviorCounts[behavior] = 0;
+                behaviorSums[behavior] += rating;
+                behaviorCounts[behavior]++;
               }
             });
           }
         }
       }
-      // For each behavior, divide sum by number of ratings (average per rating, rounded to one decimal)
+
+      // For each behavior, calculate the average across all meals (including those without ratings)
       const behaviorAverages: Record<string, number> = {};
-      Object.entries(behaviors).forEach(([behavior, arr]) => {
-        const avg = arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : 0;
-        behaviorAverages[behavior] = avg;
+      allBehaviorArr.forEach((behavior) => {
+        const sum = behaviorSums[behavior] || 0;
+        behaviorAverages[behavior] = totalMeals > 0 ? Math.round((sum / totalMeals) * 10) / 10 : 0;
       });
+
       return {
         date: bucket.label,
         startTime: bucket.startTime,
@@ -108,7 +116,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle>Disruptive Behaviors per Meal</CardTitle>
-          <CardDescription>Average severity of behaviors during meals</CardDescription>
+          <CardDescription>Average severity of behaviors per meal</CardDescription>
         </div>
         <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
       </CardHeader>
@@ -240,13 +248,13 @@ const CustomTooltip = ({ active, payload, label, timeframe, behaviorKeys }: any)
     labelContent = data.rangeLabel || label;
   }
 
-  // Reverse the order of behaviorKeys for tooltip display
-  const reversedKeys = [...behaviorKeys].reverse();
+  // Ensure the order of behaviors in the tooltip matches the graph bars (left to right)
+  const orderedKeys = [...behaviorKeys];
 
   return (
     <div className="rounded bg-white p-2 shadow-md border text-sm">
       <div className="font-semibold">{labelContent}</div>
-      {reversedKeys.map((behavior) =>
+      {orderedKeys.map((behavior) =>
         data[behavior] !== undefined && data[behavior] !== 0 ? (
           <div key={behavior}>
             <span className="font-semibold">{behavior}</span>: {data[behavior]}
