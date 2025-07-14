@@ -1,72 +1,49 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Utensils, Skull, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
+import { useClientData } from "@/hooks/useClientData"; // Import hook
+import { getProgressionName } from "@/lib/utils"; 
 interface SessionTableProps {
   clientId?: string | null;
 }
-export const SessionTable = ({
-  clientId
-}: SessionTableProps) => {
-  const sessions = [{
-    id: "1",
-    dateTime: new Date("2024-04-16T18:00:00"),
-    client: "Client #1",
-    meal: "Dinner",
-    clientId: "client-1",
-    level: "Level 1",
-    bites: 4,
-    duration: "15:20",
-    success: "6/10",
-    foods: "Mashed potatoes, pureed carrots",
-    disruptiveBehaviors: ["gagging", "crying"],
-    keyCircumstances: ["Non-routine setting"],
-    comments: "Showed resistance to new textures"
-  }, {
-    id: "2",
-    dateTime: new Date("2024-04-16T12:30:00"),
-    client: "Client #3",
-    meal: "Lunch",
-    clientId: "client-3",
-    level: "Level 2",
-    bites: 6,
-    duration: "22:45",
-    success: "8/10",
-    foods: "Yogurt, apple sauce",
-    disruptiveBehaviors: [],
-    keyCircumstances: [],
-    comments: "Good progress with smooth textures"
-  }, {
-    id: "3",
-    dateTime: new Date("2024-04-16T08:00:00"),
-    client: "Client #8",
-    meal: "Breakfast",
-    clientId: "client-8",
-    level: "Level 1",
-    bites: 3,
-    duration: "12:15",
-    success: "7/10",
-    foods: "Oatmeal",
-    disruptiveBehaviors: ["spitting out"],
-    keyCircumstances: [],
-    comments: "Morning session, still adjusting"
-  }, {
-    id: "4",
-    dateTime: new Date("2024-04-16T15:30:00"),
-    client: "Client #12",
-    meal: "Snack",
-    clientId: "client-1",
-    level: "Level 2",
-    bites: 2,
-    duration: "08:35",
-    success: "9/10",
-    foods: "Pudding",
-    disruptiveBehaviors: [],
-    keyCircumstances: [],
-    comments: "Excellent session"
-  }];
-  const displayedSessions = clientId ? sessions.filter(session => session.clientId === clientId) : sessions;
-  return <div className="bg-white rounded-lg border overflow-hidden">
+
+export const SessionTable = ({ clientId }: SessionTableProps) => {
+  const { allClients } = useClientData(); // Access all clients' data
+  const [sessions, setSessions] = useState([]);
+
+  useEffect(() => {
+    if (allClients) {
+      const logs = [];
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 3); // Calculate the date 3 days ago
+
+      Object.entries(allClients).forEach(([clientName, client]: [string, any]) => {
+        if (client.mealHistory) {
+          logs.push(...client.mealHistory
+            .filter((log: any) => new Date(log.mealStartTime) >= oneWeekAgo) // Filter logs from the last 3 days
+            .map((log: any) => ({
+              ...log,
+              client: clientName,
+              dateTime: new Date(log.mealStartTime), // Correctly convert Unix timestamp to Date
+              level: getProgressionName(client.progressionStages || [], log.progressionUuid), // Get level name
+            })));
+        }
+      });
+
+      // Sort logs by mealStartTime in descending order (most recent first)
+      logs.sort((a, b) => b.mealStartTime - a.mealStartTime);
+
+      setSessions(logs);
+    }
+  }, [allClients]);
+
+  const displayedSessions = clientId
+    ? sessions.filter(session => session.clientId === clientId)
+    : sessions;
+
+  return (
+    <div className="bg-white rounded-lg border overflow-hidden">
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold">Recent Logs</h2>
       </div>
@@ -77,7 +54,7 @@ export const SessionTable = ({
               <TableHead>Day/Time</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Meal</TableHead>
-              <TableHead>Level</TableHead>
+              <TableHead>Level</TableHead> {/* Updated to display level */}
               <TableHead>Bites</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>Success</TableHead>
@@ -103,27 +80,60 @@ export const SessionTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayedSessions.map(session => <TableRow key={session.id}>
-                <TableCell>{format(session.dateTime, "MMM d, yyyy h:mm a")}</TableCell>
-                <TableCell>{session.client}</TableCell>
-                <TableCell>{session.meal}</TableCell>
-                <TableCell>{session.level}</TableCell>
-                <TableCell>{session.bites}</TableCell>
-                <TableCell>{session.duration}</TableCell>
-                <TableCell>{session.success}</TableCell>
-                <TableCell>{session.foods}</TableCell>
+            {displayedSessions.map(session => (
+              <TableRow key={session.mealStartTime}>
                 <TableCell>
-                  {session.disruptiveBehaviors.length > 0 ? session.disruptiveBehaviors.join(", ") : "None"}
+                  {session.mealStartTime ? (
+                    <div>
+                      <div>{format(new Date(session.mealStartTime), "MMM d, yyyy")}</div>
+                      <div>{format(new Date(session.mealStartTime), "h:mm a")}</div>
+                    </div>
+                  ) : "—"}
+                </TableCell>
+                <TableCell>{session.client}</TableCell>
+                <TableCell>{session.mealType ? session.mealType.charAt(0).toUpperCase() + session.mealType.slice(1) : "—"}</TableCell>
+                <TableCell>{session.level || "N/A"}</TableCell> 
+                <TableCell>{session.bitesTaken}</TableCell>
+                <TableCell>
+                  {typeof session.elapsedSeconds === "number" ? (
+                    (() => {
+                      const minutes = Math.floor(session.elapsedSeconds / 60);
+                      const seconds = Math.round(session.elapsedSeconds % 60);
+                      return `${minutes}m ${seconds}s`;
+                    })()
+                  ) : "—"}
                 </TableCell>
                 <TableCell>
-                  {session.keyCircumstances?.length > 0 ? session.keyCircumstances.join(", ") : "None"}
+                  {typeof session.successRating === "number"
+                    ? `${session.successRating}/10`
+                    : typeof session.rating === "number"
+                    ? `${session.rating}/10`
+                    : "—"}
+                </TableCell>
+                <TableCell>{session.foods ? session.foods.join(", ") : "—"}</TableCell>
+                <TableCell>
+                  {session.disruptiveBehaviorRatings && Object.keys(session.disruptiveBehaviorRatings).length > 0
+                    ? Object.keys(session.disruptiveBehaviorRatings).join(", ")
+                    : "—"}
+                </TableCell>
+                <TableCell>
+                  {(session.mealAttributes || []).length > 0
+                    ? session.mealAttributes
+                      .map((circ) => 
+                         circ.toLowerCase().split("_").map((word) => 
+                            word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(" ")
+                      ).join(", ")
+                    : "—"}
                 </TableCell>
                 <TableCell className="max-w-xs truncate">
-                  {session.comments}
+                  {session.comment || "—"}
                 </TableCell>
-              </TableRow>)}
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>
-    </div>;
+    </div>
+  );
 };

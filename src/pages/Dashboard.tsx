@@ -4,7 +4,7 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { SessionTable } from "@/components/dashboard/SessionTable";
 import { ClientOverview } from "@/components/dashboard/ClientOverview";
-import { useTherapistData } from "@/hooks/useClientData";
+import { useClientData } from "@/hooks/useClientData";
 
 // Updated mock data to match dropdown clients
 const mockClients = [
@@ -63,15 +63,25 @@ const mockClients = [
 ];
 
 const Dashboard = () => {
-	const therapistData = useTherapistData();
+	const { therapistData, allClients } = useClientData(); // Access therapistData and allClients
 
-	const totalClients =
-		therapistData && therapistData.clients
-			? Object.keys(therapistData.clients).length
-			: 0;
+	const totalClients = allClients ? Object.keys(allClients).length : 0;
 
-	// TODO: update inactiveClients logic as needed
-	const inactiveClients = 1;
+	// Calculate inactive clients
+	const inactiveClients = allClients
+		? Object.values(allClients).filter((client: any) => {
+			const mealHistory = client.mealHistory || [];
+			const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+
+			const hasRecentLog = mealHistory.some((log: any) => {
+				const logTime = log.mealStartTime; // already in milliseconds
+				return logTime >= threeDaysAgo;
+			});
+
+			const isInactive = mealHistory.length === 0 || !hasRecentLog;
+			return isInactive; // Inactive if no logs or no recent logs
+		}).length
+		: 0;
 
 	// Get therapist name from therapistData
 	const therapistName = therapistData?.firstName || "Therapist";
@@ -84,11 +94,11 @@ const Dashboard = () => {
 					<p className="text-muted-foreground"> Here's an overview of all your client activity.</p>
 				</div>
 
-				<DashboardStats totalClients={totalClients} inactiveClients={inactiveClients}/>
+				<DashboardStats totalClients={totalClients} inactiveClients={inactiveClients} />
 				{/* <ClientOverview clients={mockClients} /> */}
 
 				<div className="w-full">
-					<SessionTable />
+					<SessionTable clientId={null} /> {/* Ensure clientId is null to show all logs */}
 				</div>
 				{/* <div className="w-full">
           <RecentActivity />
