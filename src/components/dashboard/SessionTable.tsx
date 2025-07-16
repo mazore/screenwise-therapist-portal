@@ -2,59 +2,86 @@ import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Utensils, Skull, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
+
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+
+
 import { useClientData } from "@/hooks/useClientData"; // Import hook
-import { getProgressionName } from "@/lib/utils"; 
+import { getProgressionName, getPaginationRange } from "@/lib/utils"; 
 interface SessionTableProps {
   clientId?: string | null;
+  showAllLogs?: boolean; // Whether to show all logs or only the last 7 days
+  showClientColumn?: boolean; // Whether to display the client name column
 }
 
-export const SessionTable = ({ clientId }: SessionTableProps) => {
-  const { allClients } = useClientData(); // Access all clients' data
+export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn = true }: SessionTableProps) => {
+  const { allClients, clientData } = useClientData();
   const [sessions, setSessions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // Pagination: items per page
 
   useEffect(() => {
-    if (allClients) {
-      const logs = [];
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 3); // Calculate the date 3 days ago
+    const logs = [];
+    const oneWeekAgo = new Date();
+    if (!showAllLogs) oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      Object.entries(allClients).forEach(([clientName, client]: [string, any]) => {
+    const clients = clientId ? { [clientId]: clientData } : allClients;
+
+    if (clients) {
+      Object.entries(clients).forEach(([clientName, client]: [string, any]) => {
         if (client.mealHistory) {
-          logs.push(...client.mealHistory
-            .filter((log: any) => new Date(log.mealStartTime) >= oneWeekAgo) // Filter logs from the last 3 days
-            .map((log: any) => ({
-              ...log,
-              client: clientName,
-              dateTime: new Date(log.mealStartTime), // Correctly convert Unix timestamp to Date
-              level: getProgressionName(client.progressionStages || [], log.progressionUuid), // Get level name
-            })));
+          logs.push(
+            ...client.mealHistory
+              .filter((log: any) => showAllLogs || new Date(log.mealStartTime) >= oneWeekAgo)
+              .map((log: any) => ({
+                ...log,
+                client: clientName,
+                dateTime: log.mealStartTime ? new Date(log.mealStartTime) : null, // Handle missing timestamps
+                level: getProgressionName(client.progressionStages || [], log.progressionUuid),
+              }))
+          );
         }
       });
 
-      // Sort logs by mealStartTime in descending order (most recent first)
-      logs.sort((a, b) => b.mealStartTime - a.mealStartTime);
+      // Sort logs: logs with timestamps first, then by mealStartTime descending
+      logs.sort((a, b) => {
+        if (!a.mealStartTime && b.mealStartTime) return 1; // Logs without timestamps go last
+        if (a.mealStartTime && !b.mealStartTime) return -1;
+        return b.mealStartTime - a.mealStartTime; // Descending order
+      });
 
       setSessions(logs);
     }
-  }, [allClients]);
+  }, [allClients, clientData, clientId, showAllLogs]);
 
-  const displayedSessions = clientId
-    ? sessions.filter(session => session.clientId === clientId)
-    : sessions;
+  useEffect(() => {
+    // Reset to the first page when switching clients or toggling logs
+    setCurrentPage(1);
+  }, [clientId, showAllLogs]);
+
+  const filteredSessions = sessions;
+  const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
+  const paginatedSessions = filteredSessions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="bg-white rounded-lg border overflow-hidden">
       <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold">Recent Logs</h2>
+        <h2 className="text-lg font-semibold">Session Logs</h2>
+        <p className="text-sm text-muted-foreground">
+          {showAllLogs ? "Showing all logs" : "Showing logs from the last 7 days"}
+        </p>
       </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Day/Time</TableHead>
-              <TableHead>Client</TableHead>
+              {showClientColumn && <TableHead>Client</TableHead>}
               <TableHead>Meal</TableHead>
-              <TableHead>Level</TableHead> {/* Updated to display level */}
+              <TableHead>Level</TableHead>
               <TableHead>Bites</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>Success</TableHead>
@@ -80,19 +107,21 @@ export const SessionTable = ({ clientId }: SessionTableProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayedSessions.map(session => (
-              <TableRow key={session.mealStartTime}>
+            {paginatedSessions.map((session) => (
+              <TableRow key={session.mealStartTime || session.id}>
                 <TableCell>
                   {session.mealStartTime ? (
                     <div>
                       <div>{format(new Date(session.mealStartTime), "MMM d, yyyy")}</div>
                       <div>{format(new Date(session.mealStartTime), "h:mm a")}</div>
                     </div>
-                  ) : "—"}
+                  ) : (
+                    "—"
+                  )}
                 </TableCell>
-                <TableCell>{session.client}</TableCell>
+                {showClientColumn && <TableCell>{session.client}</TableCell>}
                 <TableCell>{session.mealType ? session.mealType.charAt(0).toUpperCase() + session.mealType.slice(1) : "—"}</TableCell>
-                <TableCell>{session.level || "N/A"}</TableCell> 
+                <TableCell>{session.level || "N/A"}</TableCell>
                 <TableCell>{session.bitesTaken}</TableCell>
                 <TableCell>
                   {typeof session.elapsedSeconds === "number" ? (
@@ -104,10 +133,8 @@ export const SessionTable = ({ clientId }: SessionTableProps) => {
                   ) : "—"}
                 </TableCell>
                 <TableCell>
-                  {typeof session.successRating === "number"
-                    ? `${session.successRating}/10`
-                    : typeof session.rating === "number"
-                    ? `${session.rating}/10`
+                  {session.successRating != null
+                    ? `${Number(session.successRating)}/10`
                     : "—"}
                 </TableCell>
                 <TableCell>{session.foods ? session.foods.join(", ") : "—"}</TableCell>
@@ -119,11 +146,14 @@ export const SessionTable = ({ clientId }: SessionTableProps) => {
                 <TableCell>
                   {(session.mealAttributes || []).length > 0
                     ? session.mealAttributes
-                      .map((circ) => 
-                         circ.toLowerCase().split("_").map((word) => 
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(" ")
-                      ).join(", ")
+                        .map((circ) =>
+                          circ
+                            .toLowerCase()
+                            .split("_")
+                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(" ")
+                        )
+                        .join(", ")
                     : "—"}
                 </TableCell>
                 <TableCell className="max-w-xs truncate">
@@ -133,6 +163,48 @@ export const SessionTable = ({ clientId }: SessionTableProps) => {
             ))}
           </TableBody>
         </Table>
+      </div>
+      <div className="mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage > 1) setCurrentPage(currentPage - 1);
+                }}
+              />
+            </PaginationItem>
+            {getPaginationRange(currentPage, totalPages).map((page, index) => (
+              <PaginationItem key={index}>
+                {page === "..." ? (
+                  <span className="px-2 text-muted-foreground">...</span>
+                ) : (
+                  <PaginationLink
+                    href="#"
+                    isActive={page === currentPage}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setCurrentPage(page);
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       </div>
     </div>
   );

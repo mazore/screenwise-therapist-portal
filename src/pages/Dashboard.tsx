@@ -71,11 +71,11 @@ const Dashboard = () => {
 	const inactiveClients = allClients
 		? Object.values(allClients).filter((client: any) => {
 			const mealHistory = client.mealHistory || [];
-			const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000; // 3 days in milliseconds
+			const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
 			const hasRecentLog = mealHistory.some((log: any) => {
 				const logTime = log.mealStartTime; // already in milliseconds
-				return logTime >= threeDaysAgo;
+				return logTime >= oneWeekAgo;
 			});
 
 			const isInactive = mealHistory.length === 0 || !hasRecentLog;
