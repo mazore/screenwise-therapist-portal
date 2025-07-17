@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { SessionTable } from "@/components/dashboard/SessionTable";
-import { Button } from "@/components/ui/button";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Filter, Download, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { useClientData } from "@/hooks/useClientData";
 
-import { getProgressionName, getPaginationRange } from "@/lib/utils";
+import { getProgressionName } from "@/lib/utils";
 
 const SessionLogs: React.FC = () => {
   const { clientData, selectedClient } = useClientData();
 
-  // Debugging: Log selectedClient and clientData
-  console.log("Debugging selectedClient:", selectedClient);
-  console.log("Debugging clientData:", clientData);
-
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   // Check if clientData is available and has session logs
   const sessionLogs = clientData?.mealHistory || [];
 
   // Tracks current page number
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    // Simulate loading state until clientData is available
+    if (clientData) {
+      setIsLoading(false);
+    }
+  }, [clientData]);
 
   // Reset current page when switching changes
   useEffect(() => {
@@ -59,6 +59,16 @@ const SessionLogs: React.FC = () => {
   const endIndex = startIndex + logsPerPage;
   const pagedLogs = filteredLogs.slice(startIndex, endIndex);
   const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+
+  if (isLoading) {
+    return (
+      <TherapyLayout>
+        <div className="container mx-auto p-4 md:p-6">
+          <p className="text-center text-muted-foreground">Loading session logs...</p>
+        </div>
+      </TherapyLayout>
+    );
+  }
 
   return (
     <TherapyLayout>
