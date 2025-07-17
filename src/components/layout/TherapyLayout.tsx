@@ -172,6 +172,13 @@ export const TherapyLayout = ({
     return clientSpecificRoutes.includes(window.location.pathname);
   };
 
+  useEffect(() => {
+    // Reset selectedClient to null only on initial login
+    if (!localStorage.getItem('selectedClient')) {
+      setSelectedClient(null);
+    }
+  }, []); // Runs only once on component mount
+
   return <div className="flex h-screen w-full overflow-hidden">
       <div className={cn("h-screen border-r bg-white transition-all duration-300 flex flex-col", collapsed ? "w-[70px]" : "w-[250px]")}>
         <div className="flex items-center justify-between h-16 px-4 border-b">
