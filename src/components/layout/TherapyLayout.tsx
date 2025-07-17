@@ -113,11 +113,11 @@ export const TherapyLayout = ({
     icon: Home,
     href: "/logs"
   },
-  // {
-  //   title: "Charts and Graphs",
-  //   icon: BarChart3,
-  //   href: "/charts"
-  // },
+  {
+    title: "Charts and Graphs",
+    icon: BarChart3,
+    href: "/charts"
+  },
   // {
   //   title: "Set Goals",
   //   icon: Target,
