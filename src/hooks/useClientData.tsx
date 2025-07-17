@@ -13,6 +13,8 @@ interface ClientDataContextValue {
   setSelectedClient: React.Dispatch<React.SetStateAction<string | null>>;
   lastSyncedAt: number | null;
   lastSyncedNow: () => void;
+  allClients: any | null; // Add this
+  setAllClients: React.Dispatch<React.SetStateAction<any | null>>; // Add this
 }
 
 const ClientDataContext = createContext<ClientDataContextValue | undefined>(undefined);
@@ -24,6 +26,7 @@ export const ClientDataProvider = ({ children }: { children: ReactNode }) => {
       return localStorage.getItem('selectedClient');
   });
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [allClients, setAllClients] = useState<any | null>(null); // Add this
 
   return (
     <ClientDataContext.Provider value={{
@@ -32,7 +35,8 @@ export const ClientDataProvider = ({ children }: { children: ReactNode }) => {
       selectedClient, setSelectedClient,
       lastSyncedAt, lastSyncedNow: () => {
         setLastSyncedAt(Date.now());
-      }
+      },
+      allClients, setAllClients // Provide these
     }}>
       {children}
     </ClientDataContext.Provider>
@@ -43,4 +47,9 @@ export const useClientData = (): ClientDataContextValue => {
   const ctx = useContext(ClientDataContext);
   if (!ctx) throw new Error("useClientData must be used within ClientDataProvider");
   return ctx;
+};
+
+export const useTherapistData = () => {
+  const { therapistData } = useClientData();
+  return therapistData;
 };

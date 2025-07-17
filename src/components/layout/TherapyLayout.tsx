@@ -30,7 +30,8 @@ export const TherapyLayout = ({
     clientData, setClientData,
     therapistData, setTherapistData,
     selectedClient, setSelectedClient,
-    lastSyncedAt, lastSyncedNow
+    lastSyncedAt, lastSyncedNow,
+    setAllClients // Add this state setter
   } = useClientData();
 
   const [, forceUpdate] = useState<number>(0);
@@ -44,31 +45,38 @@ export const TherapyLayout = ({
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     const loadTherapistData = () => {
-      instance.acquireTokenSilent({scopes: ['openid', 'profile'], account: accounts[0]})
+      instance.acquireTokenSilent({ scopes: ['openid', 'profile'], account: accounts[0] })
         .then((tokenResponse) => {
           return fetch(API_URL + 'get_therapist_data', {
             method: 'POST',
-            headers: {'Authorization': 'Bearer ' + tokenResponse.idToken},
-          })
+            headers: { 'Authorization': 'Bearer ' + tokenResponse.idToken },
+          });
         })
         .then((apiResponse) => apiResponse.json())
         .then((data) => {
-          // console.log("Got therapist data", data);
           setTherapistData(data.therapistData);
           setLoading(false);
+
+          // Fetch all clients' data
+          return fetch(API_URL + 'get_therapist_all_clients', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + accounts[0].idToken },
+          });
+        })
+        .then((response) => response.json())
+        .then((allClients) => {
+          setAllClients(allClients); // Store all clients' data in context
         })
         .catch((error) => {
-          instance.acquireTokenRedirect({scopes: ['openid', 'profile']});
-          console.error('There was a problem with the fetch operation:', error);
+          instance.acquireTokenRedirect({ scopes: ['openid', 'profile'] });
         });
     };
     loadTherapistData();
-  }, [accounts, instance, setTherapistData]); // Runs on refresh
+  }, [accounts, instance, setTherapistData, setAllClients]); // Add setAllClients to dependencies
 
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
     if (selectedClient && therapistData && therapistData.clients[selectedClient]) {
-      console.log('debug1', selectedClient, therapistData);
       localStorage.setItem('selectedClient', selectedClient);
       fetch(API_URL + 'get_therapist_client', {
         method: 'POST',
@@ -164,6 +172,13 @@ export const TherapyLayout = ({
     return clientSpecificRoutes.includes(window.location.pathname);
   };
 
+  useEffect(() => {
+    // Reset selectedClient to null only on initial login
+    if (!localStorage.getItem('selectedClient')) {
+      setSelectedClient(null);
+    }
+  }, []); // Runs only once on component mount
+
   return <div className="flex h-screen w-full overflow-hidden">
       <div className={cn("h-screen border-r bg-white transition-all duration-300 flex flex-col", collapsed ? "w-[70px]" : "w-[250px]")}>
         <div className="flex items-center justify-between h-16 px-4 border-b">
@@ -178,14 +193,14 @@ export const TherapyLayout = ({
 
         <div className="flex-1 overflow-y-auto py-4">
           <div className="space-y-4">
-            {/* <div className="px-3">
+            <div className="px-3">
               <Link to="/dashboard">
                 <Button variant="ghost" className={cn("w-full justify-start", isCurrentPath("/dashboard") && "bg-muted font-medium")}>
                   <Home className={cn("h-5 w-5", collapsed && "mx-auto", isCurrentPath("/dashboard") && "text-primary")} />
                   {!collapsed && <span className="ml-2">Home Dashboard</span>}
                 </Button>
               </Link>
-            </div> */}
+            </div>
 
             <div className="px-4">
               {!collapsed && <h3 className="mb-2 text-sm font-medium text-muted-foreground">Client Tools</h3>}
