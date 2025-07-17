@@ -62,7 +62,7 @@ export default function Clients() {
 
         <div className="flex flex-col items-center mb-8">
           <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
-            <QRCode value={url} size={200} />
+            <QRCode key={url} value={url} size={200} />
           </div>
           <p className="text-sm text-gray-500 mt-2">
             Ask clients to scan this QR code using their device camera
