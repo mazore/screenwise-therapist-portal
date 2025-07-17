@@ -37,3 +37,15 @@ export function getProgressionName(progressionStages: { uuid: string; name: stri
   // Replace the dot after the number with a dash and space, e.g. "1. Beginner" => "1 - Beginner"
   return stage.name.replace(".", " -");
 }
+
+export const STATS_TIME_MODES = [
+    { label: '12M', resolution: 'month', amount: 12, getLabel: (d) => d.format('MMM') },
+    { label: '6M',  resolution: 'month', amount: 6,  getLabel: (d) => d.format('MMM') },
+    { label: '12W', resolution: 'week',  amount: 12, getLabel: (d) => d.format('M/D') },
+    { label: '6W',  resolution: 'week',  amount: 6,  getLabel: (d) => d.format('MMM D') },
+    { label: '30D', resolution: 'day',   amount: 30, 
+      //getLabel: (d) => [1, 10, 20].includes(d.date()) && d.format('MMM D') 
+      getLabel: (d) => d.format('MMM D')
+    },
+    { label: '10D', resolution: 'day',   amount: 10, getLabel: (d) => d.format('M/D') },
+];

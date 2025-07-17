@@ -1,14 +1,13 @@
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const timeframes = [
-  { value: "12M", label: "12 Months" },
-  { value: "6M", label: "6 Months" },
-  { value: "12W", label: "12 Weeks" },
-  { value: "6W", label: "6 Weeks" },
-  { value: "30D", label: "30 Days" },
-  { value: "10D", label: "10 Days" },
-] as const;
+export const timeframes = [
+    { label: '12M', resolution: 'month', amount: 12, getLabel: (d) => d.format('MMM') },
+    { label: '6M',  resolution: 'month', amount: 6,  getLabel: (d) => d.format('MMM') },
+    { label: '12W', resolution: 'week',  amount: 12, getLabel: (d) => d.format('M/D') },
+    { label: '6W',  resolution: 'week',  amount: 6,  getLabel: (d) => d.format('MMM D') },
+    { label: '30D', resolution: 'day',   amount: 30, getLabel: (d) => d.format('MMM D')},
+    { label: '10D', resolution: 'day',   amount: 10, getLabel: (d) => d.format('M/D') },
+];
 
 interface TimeframeSelectProps {
   value: string;
@@ -23,7 +22,7 @@ export const TimeframeSelect = ({ value, onValueChange }: TimeframeSelectProps) 
       </SelectTrigger>
       <SelectContent>
         {timeframes.map((timeframe) => (
-          <SelectItem key={timeframe.value} value={timeframe.value}>
+          <SelectItem key={timeframe.label} value={timeframe.label}>
             {timeframe.label}
           </SelectItem>
         ))}
@@ -31,3 +30,4 @@ export const TimeframeSelect = ({ value, onValueChange }: TimeframeSelectProps) 
     </Select>
   );
 };
+
