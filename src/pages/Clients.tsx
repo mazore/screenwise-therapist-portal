@@ -16,7 +16,11 @@ export default function Clients() {
   const [isCopied, setIsCopied] = useState(false);
 
   if (!therapistData) {
-    return null;
+    return <TherapyLayout>
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-therapy-blue"></div>
+      </div>
+    </TherapyLayout>;
   }
 
   // const url = "com.screenwiseeating.yumeats://link_to_therapist/?therapist_id=" + therapistData?.userId;
