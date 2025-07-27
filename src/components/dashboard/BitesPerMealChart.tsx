@@ -55,7 +55,7 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
             <XAxis
               dataKey="date"
               interval={0}
-              padding={{ right: 20 }}
+              padding={{ left: 20, right: 20 }}
               tickFormatter={(label, index) => {
                 if (timeframe === "30D") {
                   return index % 5 === 0 ? label : "";

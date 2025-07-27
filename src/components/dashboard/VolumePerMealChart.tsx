@@ -75,7 +75,7 @@ export const VolumePerMealChart = ({
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <XAxis
-              padding={{ right: 20 }}
+              padding={{ left: 20, right: 20 }}
               dataKey="date"
               interval={0}
               tickFormatter={(label, index) => {
