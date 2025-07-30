@@ -76,14 +76,26 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
             typeof meal.disruptiveBehaviorOccurrences === "object"
           ) {
             Object.entries(meal.disruptiveBehaviorOccurrences).forEach(([behavior, occurrences]) => {
-              if (Array.isArray(occurrences) && occurrences.length > 0) {
+              // Handle both old format (array) and new format (object with count/times)
+              let occurrenceCount = 0;
+              
+              if (Array.isArray(occurrences)) {
+                // Old format: array of occurrence times
+                occurrenceCount = occurrences.length;
+              } else if (occurrences && typeof occurrences === 'object' && 'count' in occurrences) {
+                // New format: object with count and times properties
+                occurrenceCount = (occurrences as { count?: number; times?: number[] }).count || 
+                                 ((occurrences as { count?: number; times?: number[] }).times?.length || 0);
+              }
+              
+              if (occurrenceCount > 0) {
                 if (!allBehaviorSet.has(behavior)) {
                   allBehaviorSet.add(behavior);
                   allBehaviorArr.push(behavior);
                 }
                 if (!behaviorSums[behavior]) behaviorSums[behavior] = 0;
                 if (!behaviorCounts[behavior]) behaviorCounts[behavior] = 0;
-                behaviorSums[behavior] += occurrences.length; // count of occurrences
+                behaviorSums[behavior] += occurrenceCount;
                 behaviorCounts[behavior]++;
               }
             });
