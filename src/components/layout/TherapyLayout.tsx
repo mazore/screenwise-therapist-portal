@@ -57,15 +57,21 @@ export const TherapyLayout = ({
           setTherapistData(data.therapistData);
           setLoading(false);
 
-          // Fetch all clients' data
-          return fetch(API_URL + 'get_therapist_all_clients', {
-            method: 'POST',
-            headers: { 'Authorization': 'Bearer ' + accounts[0].idToken },
-          });
-        })
-        .then((response) => response.json())
-        .then((allClients) => {
-          setAllClients(allClients); // Store all clients' data in context
+          // Only fetch all clients' data if the therapist has clients
+          if (data.therapistData.clients && Object.keys(data.therapistData.clients).length > 0) {
+            return fetch(API_URL + 'get_therapist_all_clients', {
+              method: 'POST',
+              headers: { 'Authorization': 'Bearer ' + accounts[0].idToken },
+            })
+              .then((response) => response.json())
+              .then((allClients) => {
+                setAllClients(allClients || []);
+              });
+          } else {
+            // If no clients, just set empty array
+            setAllClients([]);
+            return Promise.resolve();
+          }
         })
         .catch((error) => {
           instance.acquireTokenRedirect({ scopes: ['openid', 'profile'] });
@@ -76,7 +82,7 @@ export const TherapyLayout = ({
 
   const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    if (selectedClient && therapistData && therapistData.clients[selectedClient]) {
+    if (selectedClient && therapistData && therapistData.clients && therapistData.clients[selectedClient]) {
       localStorage.setItem('selectedClient', selectedClient);
       fetch(API_URL + 'get_therapist_client', {
         method: 'POST',
@@ -264,7 +270,7 @@ export const TherapyLayout = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-client">No client selected</SelectItem>
-                  {therapistData && Object.keys(therapistData.clients).map(
+                   {therapistData && therapistData.clients && Object.keys(therapistData.clients).map(
                     (clientName) => <SelectItem key={clientName} value={clientName}>
                       {clientName}
                     </SelectItem>)
