@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import { useClientData } from "@/hooks/useClientData";
 import { STATS_TIME_MODES } from "@/lib/utils";
@@ -186,6 +186,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
             barCategoryGap="10%" // keep group width consistent
             barGap={2}
           >
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis
               dataKey="date"
               interval={0}

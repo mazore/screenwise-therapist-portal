@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import { useClientData } from "@/hooks/useClientData";
 import { STATS_TIME_MODES } from "@/lib/utils";
@@ -79,6 +79,8 @@ export const BodyweightChart = ({ timeframe, onTimeframeChange }: BodyweightChar
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
+
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis
               dataKey="date"
               interval={0}
