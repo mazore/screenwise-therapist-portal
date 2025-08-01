@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import { useClientData } from "@/hooks/useClientData";
 import { STATS_TIME_MODES } from "@/lib/utils";
@@ -57,10 +57,10 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
     const allBehaviorArr: string[] = [];
     const allBehaviorSet = new Set<string>();
 
-    // Prepare chart data: one object per bucket, each with average rating per behavior across all meals
+    // Prepare chart data: one object per bucket, each with average occurrence count per behavior across all meals
     const bucketData = buckets.map((bucket) => {
-      const behaviorSums: Record<string, number> = {}; // sum of ratings per behavior
-      const behaviorCounts: Record<string, number> = {}; // count of meals with ratings per behavior
+      const behaviorSums: Record<string, number> = {}; // sum of occurrence counts per behavior
+      const behaviorCounts: Record<string, number> = {}; // count of meals with occurrences per behavior
       let totalMeals = 0; // count of all meals in the timeframe
 
       for (const meal of mealHistory) {
@@ -72,18 +72,30 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
         ) {
           totalMeals++;
           if (
-            meal.disruptiveBehaviorRatings &&
-            typeof meal.disruptiveBehaviorRatings === "object"
+            meal.disruptiveBehaviorOccurrences &&
+            typeof meal.disruptiveBehaviorOccurrences === "object"
           ) {
-            Object.entries(meal.disruptiveBehaviorRatings).forEach(([behavior, rating]) => {
-              if (typeof rating === "number" && rating > 0) {
+            Object.entries(meal.disruptiveBehaviorOccurrences).forEach(([behavior, occurrences]) => {
+              // Handle both old format (array) and new format (object with count/times)
+              let occurrenceCount = 0;
+              
+              if (Array.isArray(occurrences)) {
+                // Old format: array of occurrence times
+                occurrenceCount = occurrences.length;
+              } else if (occurrences && typeof occurrences === 'object' && 'count' in occurrences) {
+                // New format: object with count and times properties
+                occurrenceCount = (occurrences as { count?: number; times?: number[] }).count || 
+                                 ((occurrences as { count?: number; times?: number[] }).times?.length || 0);
+              }
+              
+              if (occurrenceCount > 0) {
                 if (!allBehaviorSet.has(behavior)) {
                   allBehaviorSet.add(behavior);
                   allBehaviorArr.push(behavior);
                 }
                 if (!behaviorSums[behavior]) behaviorSums[behavior] = 0;
                 if (!behaviorCounts[behavior]) behaviorCounts[behavior] = 0;
-                behaviorSums[behavior] += rating;
+                behaviorSums[behavior] += occurrenceCount;
                 behaviorCounts[behavior]++;
               }
             });
@@ -91,7 +103,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
         }
       }
 
-      // For each behavior, calculate the average across all meals (including those without ratings)
+      // For each behavior, calculate the average occurrence count across all meals (including those without occurrences)
       const behaviorAverages: Record<string, number> = {};
       allBehaviorArr.forEach((behavior) => {
         const sum = behaviorSums[behavior] || 0;
@@ -111,12 +123,38 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
     setBehaviorKeys(allBehaviorArr);
   }, [timeframe, mealHistory]);
 
+  // Calculate dynamic Y-axis range and tick count
+  const allValues = chartData.flatMap(bucket => 
+    behaviorKeys.map(key => bucket[key] || 0).filter(val => val > 0)
+  );
+  const hasData = allValues.length > 0;
+  
+  let yMin = 0;
+  let yMax = 5;
+  let tickCount = 6;
+
+  if (hasData) {
+    const maxValue = Math.max(...allValues);
+    
+    // Round up to nearest whole number
+    yMax = Math.ceil(maxValue);
+    
+    // Set tick increments based on max value
+    if (yMax <= 4) {
+      // Use 0.5 increments: 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4
+      tickCount = (yMax * 2) + 1;
+    } else {
+      // Use whole number increments: 0, 1, 2, 3, 4, 5, etc.
+      tickCount = yMax + 1;
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle>Disruptive Behaviors per Meal</CardTitle>
-          <CardDescription>Average severity of behaviors per meal</CardDescription>
+          <CardDescription>Average number of occurrences per meal</CardDescription>
         </div>
         <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
       </CardHeader>
@@ -148,6 +186,7 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
             barCategoryGap="10%" // keep group width consistent
             barGap={2}
           >
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis
               dataKey="date"
               interval={0}
@@ -173,9 +212,10 @@ export const DisruptiveBehaviorChart = ({ timeframe, onTimeframeChange }: Disrup
               }}
             />
             <YAxis
-              allowDecimals={false}
-              domain={[0, 10]}
-              ticks={[0, 2, 4, 6, 8, 10]}
+              allowDecimals={true}
+              domain={[0, yMax]}
+              tickCount={tickCount}
+              tickFormatter={(value) => `${value % 1 === 0 ? Math.round(value) : value.toFixed(1)}`}
             />
             <Tooltip content={<CustomTooltip behaviorKeys={behaviorKeys} timeframe={timeframe} />} />
             {(() => {

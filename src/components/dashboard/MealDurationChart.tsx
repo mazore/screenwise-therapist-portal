@@ -13,6 +13,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import { useClientData } from "@/hooks/useClientData";
@@ -69,8 +70,10 @@ export const MealDurationChart = ({
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
+
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis
-              padding={{ right: 20}}
+              padding={{ left: 20, right: 20}}
               dataKey="date"
               interval={0}
               tickFormatter={(label, index) => {

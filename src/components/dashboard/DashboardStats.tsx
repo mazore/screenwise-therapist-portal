@@ -20,7 +20,7 @@ export const DashboardStats = ({ totalClients, inactiveClients }: DashboardStats
       <StatsCard
         title="Caregiver Inactivity"
         value={inactiveClients.toString()}
-        description="Clients with no recent activity in past three days"
+        description="Clients with no recent activity in past seven days"
         icon={<AlertTriangle className="h-5 w-5 text-red-500" />}
       />
     </div>

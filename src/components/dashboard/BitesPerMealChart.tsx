@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import computeStats from "@/lib/computeStats";
 import { useClientData } from "@/hooks/useClientData";
@@ -52,10 +52,12 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
+
+            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
             <XAxis
               dataKey="date"
               interval={0}
-              padding={{ right: 20 }}
+              padding={{ left: 20, right: 20 }}
               tickFormatter={(label, index) => {
                 if (timeframe === "30D") {
                   return index % 5 === 0 ? label : "";

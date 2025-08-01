@@ -270,7 +270,7 @@ export const TherapyLayout = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="no-client">No client selected</SelectItem>
-                  {therapistData && therapistData.clients && Object.keys(therapistData.clients).map(
+                   {therapistData && therapistData.clients && Object.keys(therapistData.clients).map(
                     (clientName) => <SelectItem key={clientName} value={clientName}>
                       {clientName}
                     </SelectItem>)
