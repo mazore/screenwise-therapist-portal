@@ -139,9 +139,19 @@ export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn =
                 </TableCell>
                 <TableCell>{session.foods ? session.foods.join(", ") : "—"}</TableCell>
                 <TableCell>
-                  {session.disruptiveBehaviorRatings && Object.keys(session.disruptiveBehaviorRatings).length > 0
-                    ? Object.keys(session.disruptiveBehaviorRatings).join(", ")
-                    : "—"}
+                  {(() => {
+                    // Handle both old and new disruptive behavior formats
+                    const oldFormat = session.disruptiveBehaviorRatings && Object.keys(session.disruptiveBehaviorRatings).length > 0;
+                    const newFormat = session.disruptiveBehaviorOccurrences && Object.keys(session.disruptiveBehaviorOccurrences).length > 0;
+                    
+                    if (oldFormat) {
+                      return Object.keys(session.disruptiveBehaviorRatings).join(", ");
+                    } else if (newFormat) {
+                      return Object.keys(session.disruptiveBehaviorOccurrences).join(", ");
+                    } else {
+                      return "—";
+                    }
+                  })()}
                 </TableCell>
                 <TableCell>
                   {(session.mealAttributes || []).length > 0
