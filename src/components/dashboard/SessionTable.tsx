@@ -137,7 +137,7 @@ export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn =
                     ? `${Number(session.successRating)}/10`
                     : "—"}
                 </TableCell>
-                <TableCell>{session.foods ? session.foods.join(", ") : "—"}</TableCell>
+                <TableCell>{session.foods && session.foods.length > 0 ? session.foods.join(", ") : "—"}</TableCell>
                 <TableCell>
                   {(() => {
                     // Handle both old and new disruptive behavior formats
@@ -147,7 +147,20 @@ export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn =
                     if (oldFormat) {
                       return Object.keys(session.disruptiveBehaviorRatings).join(", ");
                     } else if (newFormat) {
-                      return Object.keys(session.disruptiveBehaviorOccurrences).join(", ");
+                      return Object.entries(session.disruptiveBehaviorOccurrences)
+                        .map(([behavior, occurrences]) => {
+                          let count = 0;
+                          
+                          // Handle both old format (array) and new format (object with count/times)
+                          if (Array.isArray(occurrences)) {
+                            count = occurrences.length;
+                          } else if (occurrences && typeof occurrences === 'object' && 'count' in occurrences) {
+                            count = (occurrences as { count?: number; times?: number[] }).count || 0;
+                          }
+                          
+                          return `${behavior} (${count}x)`;
+                        })
+                        .join(", ");
                     } else {
                       return "—";
                     }
