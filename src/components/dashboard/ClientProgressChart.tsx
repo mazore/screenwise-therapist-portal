@@ -84,10 +84,10 @@ export const ClientProgressChart = () => {
             <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="Alex" stroke="#4B9CD3" activeDot={{ r: 8 }} strokeWidth={2} />
-            <Line type="monotone" dataKey="Jamie" stroke="#57B894" activeDot={{ r: 8 }} strokeWidth={2} />
-            <Line type="monotone" dataKey="Riley" stroke="#9B66D7" activeDot={{ r: 8 }} strokeWidth={2} />
-            <Line type="monotone" dataKey="Casey" stroke="#F97316" activeDot={{ r: 8 }} strokeWidth={2} />
+            <Line type="monotone" dataKey="Alex" stroke="#4B9CD3" activeDot={{ r: 8 }} strokeWidth={2} connectNulls={true} />
+            <Line type="monotone" dataKey="Jamie" stroke="#57B894" activeDot={{ r: 8 }} strokeWidth={2} connectNulls={true} />
+            <Line type="monotone" dataKey="Riley" stroke="#9B66D7" activeDot={{ r: 8 }} strokeWidth={2} connectNulls={true} />
+            <Line type="monotone" dataKey="Casey" stroke="#F97316" activeDot={{ r: 8 }} strokeWidth={2} connectNulls={true} />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

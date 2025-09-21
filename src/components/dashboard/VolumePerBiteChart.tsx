@@ -105,6 +105,7 @@ export const VolumePerBiteChart = ({
               dataKey="ouncesPerBite"
               stroke="#6366F1"
               strokeWidth={2}
+              connectNulls={true}
             />
           </LineChart>
         </ResponsiveContainer>

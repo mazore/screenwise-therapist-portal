@@ -70,7 +70,7 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
             />
             <YAxis />
             <Tooltip content={<CustomTooltip timeframe={timeframe} />} />
-            <Line type="monotone" dataKey="bites" stroke="#F97316" strokeWidth={2} />
+            <Line type="monotone" dataKey="bites" stroke="#F97316" strokeWidth={2} connectNulls={true} />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

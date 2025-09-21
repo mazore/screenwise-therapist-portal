@@ -98,6 +98,7 @@ export const VolumePerMealChart = ({
               dataKey="ounces"
               stroke="#10B981"
               strokeWidth={2}
+              connectNulls={true}
             />
           </LineChart>
         </ResponsiveContainer>
