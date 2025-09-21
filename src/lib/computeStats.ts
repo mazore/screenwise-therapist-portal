@@ -80,7 +80,7 @@ export default function computeStats(statName, getAttribute, mealType, timeMode,
     for (let i = 0; i < data.length; i++) {
         data[i].y = data[i].numMeals
             ? Math.round((data[i].cumulativeVal / data[i].numMeals) * 10) / 10
-            : 0;
+            : null;
     }
 
     return data;
