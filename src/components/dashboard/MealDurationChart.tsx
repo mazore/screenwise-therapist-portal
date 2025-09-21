@@ -94,6 +94,7 @@ export const MealDurationChart = ({
               dataKey="duration"
               stroke="#4B9CD3"
               strokeWidth={2}
+              connectNulls={true}
             />
           </LineChart>
         </ResponsiveContainer>
