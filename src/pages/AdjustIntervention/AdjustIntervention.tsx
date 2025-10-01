@@ -7,7 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
 import { useClientData } from "@/hooks/useClientData";
 
 import { useMsal } from "@azure/msal-react";
@@ -21,9 +27,10 @@ const AdjustIntervention = () => {
   const { therapistData, clientData, lastSyncedNow } = useClientData();
 
   // --- Generalized Save State ---
-  type SaveFields = "chewingInterval" | "operationalDefinition" | "successRating" | "disruptiveBehaviorsTracked" | "autoplayAfterLastBite" | "canUnlockProgression";
+  type SaveFields = "foodInteraction" | "chewingInterval" | "operationalDefinition" | "successRating" | "disruptiveBehaviorsTracked" | "autoplayAfterLastBite" | "canUnlockProgression";
   const [lastSavedValues, setLastSavedValues] = useState<Record<string, Record<SaveFields, any>>>({});
   const saveTimeoutRefs = useRef<Record<SaveFields, NodeJS.Timeout | null>>({
+    foodInteraction: null,
     chewingInterval: null,
     operationalDefinition: null,
     successRating: null,
@@ -43,7 +50,7 @@ const AdjustIntervention = () => {
   );
   const [lastClientName, setLastClientName] = useState(clientData?.name);
   const [allowCaregiverOverride, setAllowCaregiverOverride] = useState(!!clientData?.canUnlockProgression);
-
+  const [foodInteraction, setFoodInteraction] = useState(clientData?.foodInteraction || "Bite")
   // Update values when clientData changes
   useEffect(() => {
     setChewingInterval(clientData?.secondsToChew || 30);
@@ -56,6 +63,7 @@ const AdjustIntervention = () => {
     );
     setLastClientName(clientData?.name);
     setAllowCaregiverOverride(!!clientData?.canUnlockProgression);
+    setFoodInteraction(clientData?.foodInteraction || "Bite");
 
     Object.keys(saveTimeoutRefs.current).forEach((field) => {
       if (saveTimeoutRefs.current[field as SaveFields]) {
@@ -92,6 +100,8 @@ const AdjustIntervention = () => {
           scopes: ['openid', 'profile'],
           account: accounts[0],
         });
+        console.log("TokenResponse:", tokenResponse);
+
 
         await fetch(API_URL + endpoint, {
           method: "POST",
@@ -117,6 +127,9 @@ const AdjustIntervention = () => {
     }
   };
 
+  useEffect(() => {
+  console.log("Client data:", clientData);
+}, [clientData]);
   // --- Save Chewing Interval ---
   useEffect(() => {
     saveClientSetting("chewingInterval", chewingInterval, "therapist_set_seconds_to_chew", "secondsToChew");
@@ -207,6 +220,23 @@ const AdjustIntervention = () => {
     };
   }, [allowCaregiverOverride, clientData, userId, lastClientName, instance, accounts, API_URL, lastSavedValues]);
 
+// --- Save Food Interaction Type (foodInteraction) ---
+  useEffect(() => {
+    saveClientSetting(
+      "foodInteraction",
+      foodInteraction,
+      "therapist_set_food_interaction",
+      "foodInteraction"
+    );
+    return () => {
+      if (saveTimeoutRefs.current.foodInteraction) {
+        clearTimeout(saveTimeoutRefs.current.foodInteraction);
+        saveTimeoutRefs.current.foodInteraction = null;
+      }
+    };
+  }, [foodInteraction, clientData, userId, lastClientName, instance, accounts, API_URL, lastSavedValues]);
+
+
   return (
     <TherapyLayout>
       <div className="space-y-6 max-w-4xl mx-auto">
@@ -237,6 +267,21 @@ const AdjustIntervention = () => {
               userId={userId}
               lastSyncedNow={lastSyncedNow}
             />
+
+
+            <div className="space-y-2">
+              <Label htmlFor="food-interaction">Food Interaction Type</Label>
+              <Select value={foodInteraction} onValueChange={(value) => setFoodInteraction(value)}>
+                <SelectTrigger id="food-interaction" className="w-[200px]">
+                  <SelectValue placeholder="" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bite">Bite</SelectItem>
+                  <SelectItem value="Smell">Smell</SelectItem>
+                  <SelectItem value="Touch">Touch</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Success Rating Slider */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
