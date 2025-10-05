@@ -19,6 +19,7 @@ export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn =
   const [sessions, setSessions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; // Pagination: items per page
+  const foodInteraction = clientData?.foodInteraction || "Bite";
 
   useEffect(() => {
     const logs = [];
@@ -82,7 +83,9 @@ export const SessionTable = ({ clientId, showAllLogs = false, showClientColumn =
               {showClientColumn && <TableHead>Client</TableHead>}
               <TableHead>Meal</TableHead>
               <TableHead>Level</TableHead>
-              <TableHead>Bites</TableHead>
+              <TableHead>{foodInteraction === "Bite" && "Bites"}
+                  {foodInteraction === "Smell" && "Smells"}
+                  {foodInteraction === "Touch" && "Touches"}</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>Success</TableHead>
               <TableHead>

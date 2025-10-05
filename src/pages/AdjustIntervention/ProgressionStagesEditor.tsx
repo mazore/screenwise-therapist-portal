@@ -15,6 +15,9 @@ interface ProgressionStagesEditorProps {
   /** Azure AD B2C user ID for the selected client (used by the backend) */
   userId?: string;
   lastSyncedNow: () => void;
+  foodInteraction: string;
+  setFoodInteraction: React.Dispatch<React.SetStateAction<string>>;
+
 }
 
 /**
@@ -24,7 +27,9 @@ interface ProgressionStagesEditorProps {
 const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
   clientData,
   userId,
-  lastSyncedNow
+  lastSyncedNow,
+  foodInteraction,
+  setFoodInteraction
 }) => {
   const { accounts, instance } = useMsal();
 
@@ -183,6 +188,11 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
     }
   };
 
+  useEffect(() => {
+      setFoodInteraction(clientData?.foodInteraction || "Bite");
+  
+    }, [clientData]);
+
   /* ---------- add / remove ---------- */
 
   const addProgressionStage = () => {
@@ -275,7 +285,11 @@ const ProgressionStagesEditor: React.FC<ProgressionStagesEditorProps> = ({
 
               {/* Number of bites */}
               <div className="space-y-2">
-                <Label>Number of Bites</Label>
+                <Label>
+                  {foodInteraction === "Bite" && "Number of Bites"}
+                  {foodInteraction === "Smell" && "Number of Smells"}
+                  {foodInteraction === "Touch" && "Number of Touches"}
+                </Label>
                 <Input
                   type="number"
                   min={0}

@@ -266,6 +266,8 @@ const AdjustIntervention = () => {
               clientData={clientData}
               userId={userId}
               lastSyncedNow={lastSyncedNow}
+              foodInteraction={foodInteraction}
+              setFoodInteraction={setFoodInteraction}
             />
 
 
@@ -321,14 +323,14 @@ const AdjustIntervention = () => {
                 htmlFor="swallow-confirm"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Enable ‘Swallow & Mouth Clear’ confirmation after each bite
+                Enable ‘Swallow & Mouth Clear’ confirmation after each {foodInteraction.toLowerCase()}
               </Label>
             </div>
 
             {/* Chewing Interval */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col space-y-2">
-                <Label htmlFor="interval">Chewing Interval (seconds)</Label>
+                <Label htmlFor="interval">Action Interval (seconds)</Label>
                 <div className="flex items-center space-x-2">
                   <Input
                     id="interval"
