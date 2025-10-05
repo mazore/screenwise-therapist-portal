@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
+import { useClientData } from "@/hooks/useClientData";
 
 // Dummy data for session logs
 const sessionLogs = [
@@ -49,6 +50,10 @@ const sessionLogs = [
 ];
 
 const LogsActivity = () => {
+
+  const { clientData } = useClientData();
+ const foodInteraction = clientData?.foodInteraction || "Bite";
+
   return (
     <TherapyLayout>
       <div className="container mx-auto p-6">
@@ -64,7 +69,9 @@ const LogsActivity = () => {
                     <TableHead>Day/Time</TableHead>
                     <TableHead>Meal</TableHead>
                     <TableHead>Level</TableHead>
-                    <TableHead>Bites</TableHead>
+                    <TableHead>{foodInteraction === "Bite" && "Bites"}
+                  {foodInteraction === "Smell" && "Smells"}
+                  {foodInteraction === "Touch" && "Touches"}</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Success</TableHead>
                     <TableHead>Foods</TableHead>
