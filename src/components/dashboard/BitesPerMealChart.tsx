@@ -15,8 +15,9 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
   const { clientData } = useClientData();
   const mealHistory = clientData?.mealHistory || [];
   const [chartData, setChartData] = useState([]);
-
+const [foodInteraction, setFoodInteraction] = useState(clientData?.foodInteraction || "Bite")
   useEffect(() => {
+    setFoodInteraction(clientData?.foodInteraction || "Bite");
     const timeMode = STATS_TIME_MODES.find((mode) => mode.label === timeframe);
     if (!timeMode) return;
 
@@ -36,16 +37,21 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
       endTime: item.endTime,
       rangeLabel : item.rangeLabel || item.label
     }));
-
+    
     setChartData(formattedData);
-  }, [timeframe, mealHistory]);
+  }, [timeframe, mealHistory, clientData?.foodInteraction]);
+
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <CardTitle>Bites per Meal</CardTitle>
-          <CardDescription>Average number of bites taken during meals</CardDescription>
+          <CardTitle>{foodInteraction === "Bite" && "Bites Per Meal"}
+                  {foodInteraction === "Smell" && "Smells Per Meal"}
+                  {foodInteraction === "Touch" && "Touches Per Meal"}</CardTitle>
+          <CardDescription>Average number of {foodInteraction === "Bite" && "bites"}
+                  {foodInteraction === "Smell" && "smells"}
+                  {foodInteraction === "Touch" && "touches"} taken during meals</CardDescription>
         </div>
         <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
       </CardHeader>
@@ -69,7 +75,7 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
               }}
             />
             <YAxis />
-            <Tooltip content={<CustomTooltip timeframe={timeframe} />} />
+            <Tooltip content={<CustomTooltip timeframe={timeframe} foodInteraction={foodInteraction} />} />
             <Line type="monotone" dataKey="bites" stroke="#F97316" strokeWidth={2} connectNulls={true} />
           </LineChart>
         </ResponsiveContainer>
@@ -79,7 +85,7 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
 };
 
 
-const CustomTooltip = ({ active, payload, label, timeframe }: any) => {
+const CustomTooltip = ({ active, payload, label, timeframe, foodInteraction }: any) => {
   if (!active || !payload?.[0]) return null;
 
   const { bites, startTime, endTime } = payload[0].payload;
@@ -101,7 +107,10 @@ const CustomTooltip = ({ active, payload, label, timeframe }: any) => {
   return (
     <div className="rounded bg-white p-2 shadow-md border text-sm">
       <div className="font-semibold">{labelContent}</div>
-      <div>{bites} bites</div>
+      <div>{bites}{" "} {foodInteraction === "Bite" && "bites"}
+        {foodInteraction === "Smell" && "smells"}
+        {foodInteraction === "Touch" && "touches"}
+      </div>
     </div>
   );
 };
