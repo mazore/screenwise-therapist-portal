@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TherapyLayout } from "@/components/layout/TherapyLayout";
 import { MealDurationChart } from "@/components/dashboard/MealDurationChart";
 import { DisruptiveBehaviorChart } from "@/components/dashboard/DisruptiveBehaviorChart";
@@ -9,6 +9,7 @@ import { GraphManagerDialog, type Graph } from "@/components/charts/GraphManager
 
 import { VolumePerMealChart } from "@/components/dashboard/VolumePerMealChart";
 import { VolumePerBiteChart } from "@/components/dashboard/VolumePerBiteChart";
+import { useClientData } from "@/hooks/useClientData";
 
 const initialGraphs: Graph[] = [
   { id: "meal-duration", name: "Meal Duration", visible: true },
@@ -32,6 +33,7 @@ const Charts = () => {
     "volume-per-meal": "6W",
     "volume-per-bite": "6W"
   });
+
 
   const handleTimeframeChange = (graphId: string, value: string) => {
     setTimeframes((prev) => ({ ...prev, [graphId]: value }));

@@ -5,6 +5,8 @@ import { TimeframeSelect } from "@/components/charts/TimeframeSelect";
 import computeStats from "@/lib/computeStats";
 import { useClientData } from "@/hooks/useClientData";
 import { STATS_TIME_MODES } from "@/lib/utils";
+import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface BitesPerMealChartProps {
   timeframe: string;
@@ -15,18 +17,30 @@ export const BitesPerMealChart = ({ timeframe, onTimeframeChange }: BitesPerMeal
   const { clientData } = useClientData();
   const mealHistory = clientData?.mealHistory || [];
   const [chartData, setChartData] = useState([]);
-const [foodInteraction, setFoodInteraction] = useState(clientData?.foodInteraction || "Bite")
+  const [foodInteraction, setFoodInteraction] = useState(clientData?.foodInteraction || "Bite");
+  const [interactionSeen, setInteractionSeen] = useState(clientData?.foodInteraction || "Bite");
   useEffect(() => {
-    setFoodInteraction(clientData?.foodInteraction || "Bite");
     const timeMode = STATS_TIME_MODES.find((mode) => mode.label === timeframe);
     if (!timeMode) return;
 
+
+    const filteredMeals = mealHistory.filter((meal) => {
+  const mealType = (meal.foodInteraction || "Bite").toLowerCase(); // ✅ default to Bite
+  return mealType === interactionSeen.toLowerCase();
+});
+
+
+
     const data = computeStats(
       "bitesPerMeal",
-      (meal) => parseInt(meal.bitesTaken, 10),
+      (meal) => {
+        if (interactionSeen === "Smell") return parseInt(meal.bitesTaken || "0", 10)
+        if (interactionSeen === "Touch") return parseInt(meal.bitesTaken || "0", 10)
+        return parseInt(meal.bitesTaken || "0", 10)
+      },
       null, // Assuming no specific mealType filter
       timeMode,
-      mealHistory
+      filteredMeals
     );
 
     // Format data for the chart
@@ -39,48 +53,82 @@ const [foodInteraction, setFoodInteraction] = useState(clientData?.foodInteracti
     }));
     
     setChartData(formattedData);
-  }, [timeframe, mealHistory, clientData?.foodInteraction]);
+    setFoodInteraction(clientData?.foodInteraction);
+  }, [timeframe, mealHistory, clientData?.foodInteraction,interactionSeen]);
 
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div>
-          <CardTitle>{foodInteraction === "Bite" && "Bites Per Meal"}
-                  {foodInteraction === "Smell" && "Smells Per Meal"}
-                  {foodInteraction === "Touch" && "Touches Per Meal"}</CardTitle>
-          <CardDescription>Average number of {foodInteraction === "Bite" && "bites"}
-                  {foodInteraction === "Smell" && "smells"}
-                  {foodInteraction === "Touch" && "touches"} taken during meals</CardDescription>
-        </div>
-        <TimeframeSelect value={timeframe} onValueChange={onTimeframeChange} />
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
+      <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      {/* Left side: title + description */}
+      <div className="flex flex-col">
+        <CardTitle>
+          {interactionSeen === "Bite" && "Bites Per Meal"}
+          {interactionSeen === "Smell" && "Smells Per Meal"}
+          {interactionSeen === "Touch" && "Touches Per Meal"}
+        </CardTitle>
+        <CardDescription>
+          Average number of{" "}
+          {interactionSeen === "Bite" && "bites"}
+          {interactionSeen === "Smell" && "smells"}
+          {interactionSeen === "Touch" && "touches"} taken during meals
+        </CardDescription>
+      </div>
 
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-            <XAxis
-              dataKey="date"
-              interval={0}
-              padding={{ left: 20, right: 20 }}
-              tickFormatter={(label, index) => {
-                if (timeframe === "30D") {
-                  return index % 5 === 0 ? label : "";
-                }
-                if (timeframe === "6M" || timeframe === "12M") {
-                  return label.split(" ")[0]; // "Jan 2025" → "Jan"
-                }
-                return label;
-              }}
-            />
-            <YAxis />
-            <Tooltip content={<CustomTooltip timeframe={timeframe} foodInteraction={foodInteraction} />} />
-            <Line type="monotone" dataKey="bites" stroke="#F97316" strokeWidth={2} connectNulls={true} />
-          </LineChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+      {/* Right side: both dropdowns side by side */}
+      <div className="flex flex-row items-center gap-3">
+        <Select
+          value={interactionSeen}
+          onValueChange={(value) => setInteractionSeen(value)}
+        >
+          <SelectTrigger id="food-interaction" className="w-[130px]">
+            <SelectValue placeholder="" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Bite">Bite</SelectItem>
+            <SelectItem value="Smell">Smell</SelectItem>
+            <SelectItem value="Touch">Touch</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <TimeframeSelect
+          value={timeframe}
+          onValueChange={onTimeframeChange}
+        />
+      </div>
+    </CardHeader>
+
+    <CardContent>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+          <XAxis
+            dataKey="date"
+            interval={0}
+            padding={{ left: 20, right: 20 }}
+            tickFormatter={(label, index) => {
+              if (timeframe === "30D") return index % 5 === 0 ? label : "";
+              if (timeframe === "6M" || timeframe === "12M")
+                return label.split(" ")[0];
+              return label;
+            }}
+          />
+          <YAxis />
+          <Tooltip
+            content={<CustomTooltip timeframe={timeframe} foodInteraction={foodInteraction} />}
+          />
+          <Line
+            type="monotone"
+            dataKey="bites"
+            stroke="#F97316"
+            strokeWidth={2}
+            connectNulls={true}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </CardContent>
+  </Card>
+
   );
 };
 
